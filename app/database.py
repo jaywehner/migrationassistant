@@ -1,7 +1,11 @@
 import os
+import logging
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -29,20 +33,24 @@ async def resolve_database_url() -> str:
         url = "sqlite+aiosqlite:///./migration_platform.db"
 
     if url.startswith("postgresql"):
+        logger.info("Testing PostgreSQL connection: %s", url)
         test_engine = create_async_engine(url, echo=False)
         try:
             async with test_engine.connect() as conn:
-                await conn.execute("SELECT 1")
+                await conn.execute(text("SELECT 1"))
+            logger.info("PostgreSQL is available")
             _current_database_url = url
             return url
-        except Exception:
+        except Exception as exc:
             # Postgres is unavailable: use a local SQLite fallback
+            logger.warning("PostgreSQL unavailable (%s), falling back to SQLite", exc)
             url = "sqlite+aiosqlite:///./migration_platform.db"
         finally:
             await test_engine.dispose()
 
     _current_database_url = url
     os.environ["DATABASE_URL"] = url
+    logger.info("Using database URL: %s", url)
     return url
 
 
