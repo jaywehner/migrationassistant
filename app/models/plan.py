@@ -47,6 +47,7 @@ class PlanMember(Base):
     # Relationships
     plan = relationship("MigrationPlan", back_populates="members")
     user = relationship("User", back_populates="plan_memberships", foreign_keys=[user_id])
+    inviter = relationship("User", foreign_keys=[invited_by])
 
 
 class PlanInvite(Base):

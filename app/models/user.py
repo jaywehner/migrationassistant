@@ -50,4 +50,4 @@ class User(Base):
 
     # Relationships
     owned_plans = relationship("MigrationPlan", back_populates="owner", lazy="selectin")
-    plan_memberships = relationship("PlanMember", back_populates="user", lazy="selectin")
+    plan_memberships = relationship("PlanMember", back_populates="user", lazy="selectin", foreign_keys="PlanMember.user_id")
