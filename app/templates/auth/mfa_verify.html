@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}MFA Verification - Migration Platform{% endblock %}
+{% block auth_content %}
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock fs-1 text-primary"></i>
+                    <h4 class="mt-2">Two-Factor Authentication</h4>
+                    <p class="text-muted small">Enter the code from your authenticator app</p>
+                </div>
+
+                {% if errors %}
+                <div class="alert alert-danger py-2">
+                    {% for error in errors %}
+                    <small>{{ error }}</small>{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" action="/auth/mfa-verify">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Authentication Code</label>
+                        <input type="text" class="form-control text-center fs-4 letter-spacing-2" id="code" name="code" maxlength="6" pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Verify</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+<nav class="navbar navbar-expand-lg bg-body border-bottom px-4">
+    <div class="container-fluid">
+        <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" id="sidebar-toggle">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <nav aria-label="breadcrumb" class="flex-grow-1">
+            <ol class="breadcrumb mb-0">
+                {% block breadcrumb %}
+                <li class="breadcrumb-item active">Dashboard</li>
+                {% endblock %}
+            </ol>
+        </nav>
+
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i> {{ current_user.display_name }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/auth/mfa-setup"><i class="bi bi-shield-lock me-2"></i>MFA Setup</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="post" action="/auth/logout">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

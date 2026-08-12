@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Members - {{ plan.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="/plans/{{ plan.id }}" class="text-decoration-none text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Back to {{ plan.name }}
+        </a>
+        <h4 class="mt-1 mb-0">Team Members</h4>
+    </div>
+</div>
+
+{% if can_manage %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title mb-3">Invite Member</h6>
+        <form method="post" action="/plans/{{ plan.id }}/invite" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="col-md-5">
+                <label for="email" class="form-label small">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" required placeholder="colleague@example.com">
+            </div>
+            <div class="col-md-4">
+                <label for="invite_role" class="form-label small">Role</label>
+                <select class="form-select" id="invite_role" name="invite_role">
+                    {% for r in roles %}
+                    <option value="{{ r }}" {% if r == 'contributor' %}selected{% endif %}>{{ r|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-send me-1"></i>Invite
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    {% if can_manage %}<th class="text-end">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                {{ member.user.display_name[0]|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-medium">{{ member.user.display_name }}</div>
+                                <small class="text-muted">{{ member.user.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge {% if member.role.value == 'owner' %}bg-primary{% elif member.role.value == 'admin' %}bg-info{% elif member.role.value == 'contributor' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ member.role.value|title }}
+                        </span>
+                    </td>
+                    <td><small class="text-muted">{{ member.joined_at.strftime('%b %d, %Y') }}</small></td>
+                    {% if can_manage %}
+                    <td class="text-end">
+                        {% if member.role.value != 'owner' %}
+                        <div class="d-flex gap-1 justify-content-end">
+                            <form method="post" action="/plans/{{ plan.id }}/members/{{ member.user_id }}/role" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <select name="new_role" class="form-select form-select-sm d-inline-block" style="width:auto;" onchange="this.form.submit()">
+                                    {% for r in roles %}
+                                    <option value="{{ r }}" {% if r == member.role.value %}selected{% endif %}>{{ r|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                            <form method="post" action="/plans/{{ plan.id }}/members/{{ member.user_id }}/remove" class="d-inline" onsubmit="return confirm('Remove this member?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button class="btn btn-sm btn-outline-danger" type="submit" title="Remove">
+                                    <i class="bi bi-person-x"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

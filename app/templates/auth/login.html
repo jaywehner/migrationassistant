@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Login - Migration Platform{% endblock %}
+{% block auth_content %}
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-arrow-left-right fs-1 text-primary"></i>
+                    <h4 class="mt-2">Welcome Back</h4>
+                    <p class="text-muted small">Sign in to your account</p>
+                </div>
+
+                {% if errors %}
+                <div class="alert alert-danger py-2">
+                    {% for error in errors %}
+                    <small>{{ error }}</small>{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" action="/auth/login">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ email|default('', true) }}" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <a href="/auth/forgot-password" class="small text-decoration-none">Forgot password?</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign In</button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <small class="text-muted">Don't have an account? <a href="/auth/register">Sign up</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+<!-- Task list partial (loaded via HTMX into plan detail) -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">{{ tab.name }} <span class="badge bg-secondary">{{ tasks|length }}</span></h6>
+    {% if can_create %}
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+        <i class="bi bi-plus-lg me-1"></i>Add Task
+    </button>
+    {% endif %}
+</div>
+
+{% if tasks %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Assigned To</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr class="cursor-pointer"
+                hx-get="/tasks/{{ task.id }}"
+                hx-target="#task-detail-panel"
+                hx-swap="innerHTML"
+                style="cursor:pointer;">
+                <td class="fw-medium">{{ task.title }}</td>
+                <td>
+                    {% set status_class = {
+                        'New': 'badge-new',
+                        'Open': 'badge-open',
+                        'Work In Progress': 'badge-wip',
+                        'Waiting on Client': 'badge-waiting-client',
+                        'Waiting on Vendor': 'badge-waiting-vendor',
+                    } %}
+                    <span class="badge status-badge {{ status_class.get(task.status.value, 'badge-closed-complete' if 'Complete' in task.status.value else 'badge-closed-not-needed') }}">
+                        {{ task.status.value }}
+                    </span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center gap-2" style="min-width:100px;">
+                        <div class="progress task-progress flex-grow-1">
+                            <div class="progress-bar" role="progressbar" style="width: {{ task.percent_complete }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ task.percent_complete }}%</small>
+                    </div>
+                </td>
+                <td>
+                    {% if task.assignee %}
+                    <div class="d-flex align-items-center gap-1">
+                        <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:0.65rem;">
+                            {{ task.assignee.display_name[0]|upper }}
+                        </div>
+                        <small>{{ task.assignee.display_name }}</small>
+                    </div>
+                    {% else %}
+                    <small class="text-muted">Unassigned</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.priority %}
+                    <span class="badge {% if task.priority.value == 'Critical' %}bg-danger{% elif task.priority.value == 'High' %}bg-warning text-dark{% elif task.priority.value == 'Medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                        {{ task.priority.value }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.due_date %}
+                    <small>{{ task.due_date.strftime('%b %d') }}</small>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-clipboard-check fs-3"></i>
+    <p class="mt-2">No tasks in this tab yet.</p>
+</div>
+{% endif %}
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/plans/{{ plan_id }}/tabs/{{ tab.id }}/tasks/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="assigned_to" class="form-label">Assign To</label>
+                            <select class="form-select" id="assigned_to" name="assigned_to">
+                                <option value="">Unassigned</option>
+                                {% for member in members %}
+                                <option value="{{ member.user_id }}">{{ member.user.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="">None</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="due_date" class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="due_date" name="due_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
