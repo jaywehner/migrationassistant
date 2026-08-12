@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Database Setup - Migration Platform{% endblock %}
-{% block content %}
+{% block auth_content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white text-center py-3">
-                <h4 class="mb-0">Setup: Database Connection</h4>
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white text-center py-3 border-0">
+                <h4 class="mb-0">Database Setup</h4>
             </div>
             <div class="card-body p-4">
                 {% if error %}
@@ -21,15 +21,15 @@
                 </div>
                 {% endif %}
                 
-                <p class="text-muted">Welcome to Migration Collaboration Platform. Please provide your PostgreSQL database connection details.</p>
+                <p class="text-muted text-center mb-4">Provide your PostgreSQL database connection details.</p>
                 
                 <form method="post" action="/setup/database">
                     <div class="row mb-3">
-                        <div class="col-md-8">
+                        <div class="col-8">
                             <label class="form-label">Host</label>
                             <input type="text" class="form-control" name="host" value="{{ host }}" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-4">
                             <label class="form-label">Port</label>
                             <input type="number" class="form-control" name="port" value="{{ port }}" required>
                         </div>

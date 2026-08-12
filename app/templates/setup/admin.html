@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Create Admin - Migration Platform{% endblock %}
-{% block content %}
+{% block auth_content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white text-center py-3">
-                <h4 class="mb-0">Setup: Create Global Admin</h4>
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white text-center py-3 border-0">
+                <h4 class="mb-0">Create Global Admin</h4>
             </div>
             <div class="card-body p-4">
                 {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
                 {% endif %}
                 
-                <p class="text-muted">Database connected successfully! Now, create the first global administrator account.</p>
+                <p class="text-muted text-center mb-4">Database connected! Now create the first administrator account.</p>
                 
                 <form method="post" action="/setup/admin">
                     <div class="mb-3">
