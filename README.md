@@ -5,6 +5,9 @@ A web-based, multi-user collaboration application for planning and tracking serv
 ## Features
 
 - **User Authentication** — Email/password registration, email verification, TOTP MFA, password reset, account lockout
+- **Global Admin System** — First registered user becomes the protected first global admin; admins can add/delete/update users and reset passwords
+- **Admin Area** — System settings, user management (add/edit/delete, access levels: Admin, User, Read-only)
+- **Global Read-Only Users** — Read-only users can view data but cannot create or modify anything
 - **Migration Plans** — Create plans, invite collaborators by email with role-based access
 - **Process Tabs** — Named, reorderable tabs within each plan (drag-and-drop via SortableJS)
 - **Task Management** — 7-status state machine (New → Open → WIP → Waiting → Closed)
