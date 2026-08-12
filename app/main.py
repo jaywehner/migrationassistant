@@ -10,8 +10,18 @@ from app.config import get_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.database import init_db, engine, _current_database_url, Base
+    from app.database import init_db, engine, _current_database_url
     await init_db()
+
+    # Make sure all models are imported so their metadata is registered before create_all
+    import app.models.user
+    import app.models.plan
+    import app.models.tab
+    import app.models.task
+    import app.models.note
+    import app.models.attachment
+    import app.models.audit
+    from app.database import Base
 
     # For SQLite fallback, create tables automatically. For PostgreSQL, rely on Alembic.
     if _current_database_url and _current_database_url.startswith("sqlite"):
