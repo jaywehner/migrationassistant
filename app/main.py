@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
@@ -23,12 +23,6 @@ async def lifespan(app: FastAPI):
     import app.models.audit
     from app.database import Base
 
-    # For SQLite fallback, create tables automatically. For PostgreSQL, rely on Alembic.
-    # We check the actual dialect in the engine rather than _current_database_url
-    if engine.url.drivername == "sqlite" or engine.url.drivername == "sqlite+aiosqlite":
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
     settings = get_settings()
     os.makedirs(settings.upload_dir, exist_ok=True)
     yield
@@ -47,7 +41,7 @@ def create_app() -> FastAPI:
     # Session middleware
     application.add_middleware(
         SessionMiddleware,
-        secret_key=settings.secret_key,
+        secret_key=settings.secret_key or "temporary_secret_key_for_setup_only",
         session_cookie="session",
         max_age=settings.session_expire_hours * 3600,
         same_site="strict",
@@ -58,8 +52,21 @@ def create_app() -> FastAPI:
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     application.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Middleware: Setup redirect
+    @application.middleware("http")
+    async def enforce_setup(request: Request, call_next):
+        if request.url.path.startswith("/setup") or request.url.path.startswith("/static"):
+            return await call_next(request)
+            
+        from app.routers.setup import is_setup_complete
+        if not await is_setup_complete():
+            return RedirectResponse(url="/setup", status_code=303)
+            
+        return await call_next(request)
+
     # Register routers
-    from app.routers import auth, plans, tabs, tasks, notes, attachments, admin
+    from app.routers import auth, plans, tabs, tasks, notes, attachments, admin, setup
+    application.include_router(setup.router)
     application.include_router(auth.router)
     application.include_router(plans.router)
     application.include_router(tabs.router)

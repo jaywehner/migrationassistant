@@ -5,15 +5,16 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Application
-    secret_key: str = Field(..., description="Secret key for signing tokens")
+    secret_key: str = ""
     allowed_origins: str = "http://localhost:8000"
     app_url: str = "http://localhost:8000"
 
     # Database
-    database_url: str = "postgresql+asyncpg://appuser:changeme@db:5432/migration_platform"
+    database_url: str = ""
 
     # Field encryption
-    field_encryption_key: str = Field(..., description="Fernet key for field-level encryption")
+    field_encryption_key: str = ""
+    secret_key: str = ""
 
     # SMTP
     smtp_host: str = "localhost"
@@ -45,3 +46,6 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+def clear_settings_cache():
+    get_settings.cache_clear()

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Database Setup - Migration Platform{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h4 class="mb-0">Setup: Database Connection</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if error %}
+                <div class="alert alert-danger">
+                    <strong>{{ error }}</strong>
+                    <hr>
+                    <small><code>{{ detail }}</code></small>
+                    {% if sql_hint %}
+                    <hr>
+                    <p class="mb-1">You may need to run this command in your PostgreSQL server:</p>
+                    <code>{{ sql_hint }}</code>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <p class="text-muted">Welcome to Migration Collaboration Platform. Please provide your PostgreSQL database connection details.</p>
+                
+                <form method="post" action="/setup/database">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Host</label>
+                            <input type="text" class="form-control" name="host" value="{{ host }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Port</label>
+                            <input type="number" class="form-control" name="port" value="{{ port }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Database Name</label>
+                        <input type="text" class="form-control" name="dbname" value="{{ dbname }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" value="{{ username }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Test Connection & Initialize</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

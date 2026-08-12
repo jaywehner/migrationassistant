@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Create Admin - Migration Platform{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white text-center py-3">
+                <h4 class="mb-0">Setup: Create Global Admin</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <p class="text-muted">Database connected successfully! Now, create the first global administrator account.</p>
+                
+                <form method="post" action="/setup/admin">
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-control" name="display_name" value="{{ display_name|default('') }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email" value="{{ email|default('') }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required minlength="8">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" name="confirm_password" required minlength="8">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">Create Admin Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

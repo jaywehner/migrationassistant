@@ -31,56 +31,30 @@ A web-based, multi-user collaboration application for planning and tracking serv
 | Templates | Jinja2 (server-rendered) |
 | Email | Generic SMTP relay |
 
-## Quick Start (SQLite fallback - no Docker required)
+## Installation & Setup
+
+No manual configuration of `.env` files is required. A web-based setup wizard will guide you through connecting to PostgreSQL and creating the first global admin account.
 
 ```bash
 # 1. Clone the repo
 git clone <repository-url>
 cd GOAMigrationAssistant
 
-# 2. Create .env from template
-cp .env.example .env
+# 2. Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 3. Generate encryption key and update .env
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-# Paste the output as FIELD_ENCRYPTION_KEY in .env
+# 3. Install dependencies
+pip install -r requirements.txt
 
-# 4. Set a strong SECRET_KEY in .env
-# 5. Start the application
+# 4. Start the application
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Production / Docker (PostgreSQL)
-
-```bash
-# 1. Set DATABASE_URL in .env to PostgreSQL, e.g.:
-# DATABASE_URL=postgresql+asyncpg://appuser:password@localhost:5432/migration_platform
-
-# 2. Start PostgreSQL
-# docker compose up -d db
-
-# 3. Run migrations
-alembic upgrade head
-
-# 4. Start the app
-# docker compose up -d app
-```
-
-## Local Development
-
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Generate a .env file (see .env.example) or use defaults
-# By default the app will use SQLite if DATABASE_URL is not set or Postgres is unreachable
-
-# Run migrations if using PostgreSQL
-# alembic upgrade head
+1. Open your browser to `http://localhost:8000`
+2. Follow the setup wizard to configure your PostgreSQL connection
+3. The wizard will automatically run database migrations and prompt you to create the First Global Admin account.
+4. Once completed, the wizard disables itself permanently (or until `.setup_complete` is removed).
 
 # Start development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
