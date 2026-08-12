@@ -41,6 +41,14 @@ async def accept_invite_page(
         request.session["invite_token"] = token
         return RedirectResponse(url="/auth/login", status_code=303)
 
+    # Globally read-only users cannot accept invitations (state-changing action)
+    if user.global_access_level.value == "read_only":
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "errors": ["Read-only users cannot accept invitations."],
+            "csrf_token": "",
+        })
+
     # Accept the invite
     plan = await get_plan_by_id(db, invite.plan_id)
     await accept_invite(db, invite, user)
