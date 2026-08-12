@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}User Management - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-people me-2"></i>User Management</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="bi bi-plus-lg me-1"></i>Add User
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Access Level</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                {{ u.display_name[0]|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-medium">{{ u.display_name }}</div>
+                                <small class="text-muted">{{ u.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge {% if u.global_access_level.value == 'admin' %}bg-primary{% elif u.global_access_level.value == 'user' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {{ u.global_access_level.value|title }}
+                        </span>
+                        {% if u.is_first_admin %}
+                        <span class="badge bg-warning text-dark ms-1">First Admin</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_locked %}
+                        <span class="badge bg-danger">Locked</span>
+                        {% else %}
+                        <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ u.created_at.strftime('%b %d, %Y') }}</small></td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            {% if not u.is_first_admin or current_user.id == u.id %}
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ u.id }}">Edit</button>
+                            {% endif %}
+                            {% if not u.is_first_admin %}
+                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal-{{ u.id }}">Reset PW</button>
+                            <form method="post" action="/admin/users/{{ u.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this user?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/admin/users/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-control" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" name="confirm_password" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Access Level</label>
+                        <select class="form-select" name="access_level">
+                            {% for level in access_levels %}
+                            <option value="{{ level }}">{{ level|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for u in users %}
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal-{{ u.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/admin/users/{{ u.id }}/update">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-control" name="display_name" value="{{ u.display_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Access Level</label>
+                        <select class="form-select" name="access_level">
+                            {% for level in access_levels %}
+                            <option value="{{ level }}" {% if u.global_access_level.value == level %}selected{% endif %}>{{ level|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal-{{ u.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/admin/users/{{ u.id }}/reset-password">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reset Password for {{ u.display_name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" name="new_password" required minlength="8">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" name="confirm_password" required minlength="8">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

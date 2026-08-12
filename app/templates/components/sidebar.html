@@ -14,12 +14,22 @@
                     <span>My Plans</span>
                 </a>
             </li>
+            {% if current_user.global_access_level.value != 'read_only' %}
             <li class="nav-item">
                 <a class="nav-link rounded d-flex align-items-center gap-2" href="/plans/new">
                     <i class="bi bi-plus-circle"></i>
                     <span>Create Plan</span>
                 </a>
             </li>
+            {% endif %}
+            {% if current_user.is_global_admin %}
+            <li class="nav-item">
+                <a class="nav-link rounded d-flex align-items-center gap-2" href="/admin">
+                    <i class="bi bi-shield-lock"></i>
+                    <span>Admin Area</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
     </nav>
 

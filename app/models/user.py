@@ -1,11 +1,18 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, Integer, DateTime, func
+import enum
+from sqlalchemy import String, Boolean, Integer, DateTime, func, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
 from app.encryption import EncryptedString
+
+
+class GlobalAccessLevel(str, enum.Enum):
+    admin = "admin"
+    user = "user"
+    read_only = "read_only"
 
 
 class User(Base):
@@ -27,6 +34,12 @@ class User(Base):
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False)
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Global access level (system-wide, independent of plan membership)
+    # Admin: can manage users and settings; User: regular authenticated user; Read-only: can only view
+    global_access_level: Mapped[GlobalAccessLevel] = mapped_column(Enum(GlobalAccessLevel), nullable=False, default=GlobalAccessLevel.user)
+    is_global_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # Kept for backwards/query convenience
+    is_first_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Preferences
     theme_preference: Mapped[str] = mapped_column(String(10), default="light")

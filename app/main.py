@@ -6,7 +6,8 @@ from contextlib import asynccontextmanager
 import os
 
 from app.config import get_settings
-from app.database import init_db
+from app.database import init_db, get_db
+from app.services.auth_service import get_user_by_id
 
 
 @asynccontextmanager
@@ -40,6 +41,39 @@ def create_app() -> FastAPI:
     # Static files
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     application.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    # Middleware: enforce global read-only access on state-changing requests
+    @application.middleware("http")
+    async def enforce_global_readonly(request: Request, call_next):
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            from app.models.user import GlobalAccessLevel
+            from app.database import AsyncSessionLocal
+            user_id = request.session.get("user_id")
+            if user_id:
+                try:
+                    import uuid as _uuid
+                    uid = _uuid.UUID(user_id)
+                    db = AsyncSessionLocal()
+                    try:
+                        user = await get_user_by_id(db, uid)
+                        if user and user.global_access_level == GlobalAccessLevel.read_only:
+                            from fastapi.responses import JSONResponse, HTMLResponse
+                            accept = request.headers.get("accept", "")
+                            if "text/html" in accept:
+                                return HTMLResponse(
+                                    content="<h1>Forbidden</h1><p>Read-only users cannot modify data.</p>",
+                                    status_code=403,
+                                )
+                            return JSONResponse(
+                                content={"detail": "Read-only users cannot modify data"},
+                                status_code=403,
+                            )
+                    finally:
+                        await db.close()
+                except (ValueError, TypeError):
+                    pass
+        response = await call_next(request)
+        return response
 
     # Register routers
     from app.routers import auth, plans, tabs, tasks, notes, attachments, admin

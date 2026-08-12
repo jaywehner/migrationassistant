@@ -4,7 +4,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 import pyotp
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -107,11 +107,19 @@ async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> User | None:
 
 
 async def create_user(db: AsyncSession, email: str, password: str, display_name: str = "") -> User:
+    from app.models.user import GlobalAccessLevel
+    # Determine if this is the very first user in the system
+    count_result = await db.execute(select(func.count()).select_from(User))
+    user_count = count_result.scalar() or 0
+
     user = User(
         email=email,
         email_hash=hash_email(email),
         password_hash=hash_password(password),
         display_name=display_name or email.split("@")[0],
+        global_access_level=GlobalAccessLevel.admin if user_count == 0 else GlobalAccessLevel.user,
+        is_global_admin=user_count == 0,
+        is_first_admin=user_count == 0,
     )
     db.add(user)
     await db.flush()

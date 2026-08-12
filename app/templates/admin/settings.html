@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Admin Settings - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-gear me-2"></i>System Settings</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-envelope me-2"></i>Email / SMTP</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/admin/settings">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Host</label>
+                        <input type="text" class="form-control" name="smtp_host" value="{{ smtp_host }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Port</label>
+                        <input type="number" class="form-control" name="smtp_port" value="{{ smtp_port }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">From Email</label>
+                        <input type="email" class="form-control" name="smtp_from_email" value="{{ smtp_from_email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">From Name</label>
+                        <input type="text" class="form-control" name="smtp_from_name" value="{{ smtp_from_name }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-sliders me-2"></i>Application Settings</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/admin/settings">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label">Max Upload Size (MB)</label>
+                        <input type="number" class="form-control" name="max_upload_size_mb" value="{{ max_upload_size_mb }}" min="1" max="500" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Session Expire Hours</label>
+                        <input type="number" class="form-control" name="session_expire_hours" value="{{ session_expire_hours }}" min="1" max="720" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Migration Collaboration Platform</strong></p>
+                <p class="text-muted small mb-0">Changes to these settings are written to the <code>.env</code> file and require a server restart to take full effect.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

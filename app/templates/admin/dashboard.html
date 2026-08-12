@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Admin Area - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Admin Area</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-people fs-1 text-primary"></i>
+                <h5 class="mt-2">{{ user_count }}</h5>
+                <p class="text-muted mb-0">Registered Users</p>
+                <a href="/admin/users" class="btn btn-sm btn-outline-primary mt-3">Manage Users</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-kanban fs-1 text-info"></i>
+                <h5 class="mt-2">{{ plan_count }}</h5>
+                <p class="text-muted mb-0">Migration Plans</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-gear fs-1 text-secondary"></i>
+                <h5 class="mt-2">Settings</h5>
+                <p class="text-muted mb-0">SMTP, session, uploads</p>
+                <a href="/admin/settings" class="btn btn-sm btn-outline-secondary mt-3">Configure</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
