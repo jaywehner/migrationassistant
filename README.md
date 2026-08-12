@@ -31,7 +31,7 @@ A web-based, multi-user collaboration application for planning and tracking serv
 | Templates | Jinja2 (server-rendered) |
 | Email | Generic SMTP relay |
 
-## Quick Start (Docker)
+## Quick Start (SQLite fallback - no Docker required)
 
 ```bash
 # 1. Clone the repo
@@ -45,18 +45,25 @@ cp .env.example .env
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # Paste the output as FIELD_ENCRYPTION_KEY in .env
 
-# 4. Set a strong POSTGRES_PASSWORD and SECRET_KEY in .env
-
+# 4. Set a strong SECRET_KEY in .env
 # 5. Start the application
-docker compose up -d
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-# 6. Run database migrations
-docker compose exec app alembic upgrade head
+## Production / Docker (PostgreSQL)
 
-# 7. Open the app
-# Visit http://localhost:8000
-# For dev email (MailHog): docker compose --profile dev up -d mailhog
-# Then visit http://localhost:8025 to see emails
+```bash
+# 1. Set DATABASE_URL in .env to PostgreSQL, e.g.:
+# DATABASE_URL=postgresql+asyncpg://appuser:password@localhost:5432/migration_platform
+
+# 2. Start PostgreSQL
+# docker compose up -d db
+
+# 3. Run migrations
+alembic upgrade head
+
+# 4. Start the app
+# docker compose up -d app
 ```
 
 ## Local Development
@@ -69,11 +76,11 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up PostgreSQL (or use docker compose up -d db)
-# Update DATABASE_URL in .env to point to your local Postgres
+# Generate a .env file (see .env.example) or use defaults
+# By default the app will use SQLite if DATABASE_URL is not set or Postgres is unreachable
 
-# Run migrations
-alembic upgrade head
+# Run migrations if using PostgreSQL
+# alembic upgrade head
 
 # Start development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

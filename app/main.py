@@ -12,7 +12,15 @@ from app.services.auth_service import get_user_by_id
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    await init_db()
+    from app.database import engine, _current_database_url
+    from app.models import Base
+
+    # For SQLite fallback, create tables automatically. For PostgreSQL, rely on Alembic.
+    if _current_database_url and _current_database_url.startswith("sqlite"):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
     settings = get_settings()
     os.makedirs(settings.upload_dir, exist_ok=True)
     yield
