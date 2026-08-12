@@ -10,7 +10,7 @@ from app.config import get_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.database import init_db, engine, _current_database_url
+    from app.database import init_db, engine, get_configured_database_url
     await init_db()
 
     # Make sure all models are imported so their metadata is registered before create_all
@@ -24,7 +24,8 @@ async def lifespan(app: FastAPI):
     from app.database import Base
 
     # For SQLite fallback, create tables automatically. For PostgreSQL, rely on Alembic.
-    if _current_database_url and _current_database_url.startswith("sqlite"):
+    # We check the actual dialect in the engine rather than _current_database_url
+    if engine.url.drivername == "sqlite" or engine.url.drivername == "sqlite+aiosqlite":
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
