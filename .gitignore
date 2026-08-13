@@ -21,6 +21,7 @@ env/
 
 # Environment
 .env
+.setup_complete
 
 # Uploads
 uploads/
