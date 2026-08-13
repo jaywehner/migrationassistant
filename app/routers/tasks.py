@@ -77,6 +77,10 @@ async def task_detail(
     if not role:
         raise HTTPException(status_code=404)
 
+    # Direct browser navigation (non-HTMX) gets the full plan page instead of the bare fragment
+    if request.headers.get("HX-Request") != "true":
+        return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
+
     members = await get_plan_members(db, plan_id)
     csrf_token = generate_csrf_token(request)
 
