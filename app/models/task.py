@@ -14,8 +14,8 @@ class TaskStatus(str, enum.Enum):
     waiting_on_client = "Waiting on Client"
     waiting_on_vendor = "Waiting on Vendor"
     work_in_progress = "Work In Progress"
-    closed_not_needed = "Closed – Not Needed"
-    closed_complete = "Closed – Complete"
+    closed_not_needed = "Closed - Not Needed"
+    closed_complete = "Closed - Complete"
 
 
 class TaskPriority(str, enum.Enum):
@@ -71,9 +71,15 @@ class Task(Base):
     tab_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("process_tabs.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     description: Mapped[str] = mapped_column(String(5000), nullable=True, default="")
-    status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), nullable=False, default=TaskStatus.new)
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, values_callable=lambda e: [m.value for m in e]),
+        nullable=False, default=TaskStatus.new,
+    )
     percent_complete: Mapped[int] = mapped_column(Integer, default=0)
-    priority: Mapped[TaskPriority | None] = mapped_column(Enum(TaskPriority), nullable=True)
+    priority: Mapped[TaskPriority | None] = mapped_column(
+        Enum(TaskPriority, values_callable=lambda e: [m.value for m in e]),
+        nullable=True,
+    )
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
