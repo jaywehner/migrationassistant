@@ -84,8 +84,9 @@
     </div>
     <div class="row">
         <div class="col-6 mb-3">
-            <label class="form-label small text-muted">% Complete</label>
-            <input type="number" class="form-control form-control-sm" name="percent_complete" value="{{ task.percent_complete }}" min="0" max="100">
+            <label class="form-label small text-muted">% Complete: <span id="pct-label" class="fw-medium">{{ task.percent_complete }}%</span></label>
+            <input type="range" class="form-range" name="percent_complete" value="{{ task.percent_complete }}" min="0" max="100" step="10"
+                   oninput="document.getElementById('pct-label').textContent = this.value + '%'">
         </div>
         <div class="col-6 mb-3">
             <label class="form-label small text-muted">Priority</label>

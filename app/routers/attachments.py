@@ -109,7 +109,6 @@ async def download_attachment(
         path,
         media_type=attachment.mime_type,
         filename=attachment.original_filename,
-        headers={"Content-Disposition": f'attachment; filename="{attachment.original_filename}"'},
     )
 
 
