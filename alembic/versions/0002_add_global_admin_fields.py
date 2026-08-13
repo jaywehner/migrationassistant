@@ -18,12 +18,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Explicitly create the enum type first for PostgreSQL
+    global_access_level_enum = sa.Enum("admin", "user", "read_only", name="globalaccesslevel")
+    global_access_level_enum.create(op.get_bind(), checkfirst=True)
+
     # Add global_access_level enum column
     op.add_column(
         "users",
         sa.Column(
             "global_access_level",
-            sa.Enum("admin", "user", "read_only", name="globalaccesslevel"),
+            global_access_level_enum,
             nullable=False,
             server_default="user",
         ),
