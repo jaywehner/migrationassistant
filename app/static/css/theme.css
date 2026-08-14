@@ -54,7 +54,7 @@
 /* Cards */
 .card {
     border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 10px rgba(3, 195, 236, 0.35);
     border-radius: 0.5rem;
 }
 
@@ -127,7 +127,7 @@
 
 /* Theme-specific overrides */
 [data-bs-theme="dark"] .card {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 12px rgba(3, 195, 236, 0.45);
 }
 
 [data-bs-theme="dark"] .sidebar-nav .nav-link:hover {

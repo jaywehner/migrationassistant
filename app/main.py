@@ -65,7 +65,7 @@ def create_app() -> FastAPI:
         return await call_next(request)
 
     # Register routers
-    from app.routers import auth, plans, tabs, tasks, notes, attachments, admin, setup
+    from app.routers import auth, plans, tabs, tasks, notes, attachments, admin, setup, analytics
     application.include_router(setup.router)
     application.include_router(auth.router)
     application.include_router(plans.router)
@@ -74,6 +74,7 @@ def create_app() -> FastAPI:
     application.include_router(notes.router)
     application.include_router(attachments.router)
     application.include_router(admin.router)
+    application.include_router(analytics.router)
 
     # Invite acceptance (top-level route)
     from app.routers.invites import router as invites_router

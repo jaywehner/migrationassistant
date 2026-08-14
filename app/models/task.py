@@ -30,7 +30,10 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.new: {
         TaskStatus.open,
         TaskStatus.work_in_progress,
+        TaskStatus.waiting_on_client,
+        TaskStatus.waiting_on_vendor,
         TaskStatus.closed_not_needed,
+        TaskStatus.closed_complete,
     },
     TaskStatus.open: {
         TaskStatus.work_in_progress,
@@ -40,6 +43,7 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.closed_complete,
     },
     TaskStatus.work_in_progress: {
+        TaskStatus.open,
         TaskStatus.waiting_on_client,
         TaskStatus.waiting_on_vendor,
         TaskStatus.closed_complete,
@@ -48,18 +52,24 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.waiting_on_client: {
         TaskStatus.open,
         TaskStatus.work_in_progress,
+        TaskStatus.waiting_on_vendor,
         TaskStatus.closed_not_needed,
+        TaskStatus.closed_complete,
     },
     TaskStatus.waiting_on_vendor: {
         TaskStatus.open,
         TaskStatus.work_in_progress,
+        TaskStatus.waiting_on_client,
         TaskStatus.closed_not_needed,
+        TaskStatus.closed_complete,
     },
     TaskStatus.closed_complete: {
         TaskStatus.open,  # Reopen (Admin/Owner only)
+        TaskStatus.work_in_progress,  # Reopen (Admin/Owner only)
     },
     TaskStatus.closed_not_needed: {
         TaskStatus.open,  # Reopen (Admin/Owner only)
+        TaskStatus.work_in_progress,  # Reopen (Admin/Owner only)
     },
 }
 

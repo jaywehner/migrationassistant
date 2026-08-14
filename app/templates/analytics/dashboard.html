@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Analytics - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Analytics</h4>
+</div>
+
+<!-- KPI summary cards -->
+<div class="row g-4 mb-2">
+    <div class="col-6 col-md-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-kanban fs-1 text-primary"></i>
+                <h4 class="mt-2 mb-0">{{ stats.total_plans }}</h4>
+                <p class="text-muted mb-0 small">Migration Plans</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-check2-circle fs-1 text-success"></i>
+                <h4 class="mt-2 mb-0">{{ stats.completion_rate }}%</h4>
+                <p class="text-muted mb-0 small">Overall Completion ({{ stats.completed_tasks }}/{{ stats.total_tasks }})</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
+                <h4 class="mt-2 mb-0">{{ stats.overdue_count }}</h4>
+                <p class="text-muted mb-0 small">Overdue Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-hourglass-split fs-1 text-warning"></i>
+                <h4 class="mt-2 mb-0">{{ stats.due_soon_count }}</h4>
+                <p class="text-muted mb-0 small">Due in Next 7 Days</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <!-- Status breakdown -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Tasks by Status</h6>
+                <canvas id="statusChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Priority breakdown -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Tasks by Priority</h6>
+                <canvas id="priorityChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan progress -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Completion by Plan</h6>
+                <canvas id="planProgressChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workload -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Open Task Workload by Assignee</h6>
+                {% if stats.workload %}
+                <canvas id="workloadChart" height="240"></canvas>
+                {% else %}
+                <p class="text-muted small">No assigned open tasks yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity trend -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Task Creation Activity (by week)</h6>
+                {% if stats.activity_labels %}
+                <canvas id="activityChart" height="200"></canvas>
+                {% else %}
+                <p class="text-muted small">No task activity yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue task list -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">Most Overdue Tasks</h6>
+                {% if stats.overdue_tasks %}
+                <ul class="list-unstyled mb-0">
+                    {% for t in stats.overdue_tasks %}
+                    <li class="d-flex justify-content-between py-1 border-bottom small">
+                        <span class="text-truncate me-2">{{ t.title }}</span>
+                        <span class="text-danger fw-medium">{{ t.due_date.strftime('%b %d') }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">Nothing overdue. Nice work!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const gridColor = getComputedStyle(document.documentElement).getPropertyValue('data-bs-theme') === 'dark'
+        ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+    const textColor = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#e9ecef' : '#566a7f';
+    Chart.defaults.color = textColor;
+    Chart.defaults.borderColor = gridColor;
+
+    const statusData = {{ stats.status_breakdown|tojson }};
+    const statusColors = {
+        'New': '#03c3ec',
+        'Open': '#696cff',
+        'Work In Progress': '#ffab00',
+        'Waiting on Client': '#ff3e1d',
+        'Waiting on Vendor': '#fd7e14',
+        'Closed - Not Needed': '#8592a3',
+        'Closed - Complete': '#71dd37'
+    };
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusData),
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: Object.keys(statusData).map(k => statusColors[k] || '#adb5bd'),
+            }]
+        },
+        options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } } }
+    });
+
+    const priorityData = {{ stats.priority_breakdown|tojson }};
+    const priorityColors = { 'Low': '#71dd37', 'Medium': '#ffab00', 'High': '#fd7e14', 'Critical': '#ff3e1d', 'Unset': '#8592a3' };
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(priorityData),
+            datasets: [{
+                label: 'Tasks',
+                data: Object.values(priorityData),
+                backgroundColor: Object.keys(priorityData).map(k => priorityColors[k] || '#696cff'),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+
+    const planProgress = {{ stats.plan_progress|tojson }};
+    new Chart(document.getElementById('planProgressChart'), {
+        type: 'bar',
+        data: {
+            labels: planProgress.map(p => p.name),
+            datasets: [{
+                label: '% Complete',
+                data: planProgress.map(p => p.percent),
+                backgroundColor: '#03c3ec',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, max: 100 } }
+        }
+    });
+
+    const workload = {{ stats.workload|tojson }};
+    if (Object.keys(workload).length) {
+        new Chart(document.getElementById('workloadChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(workload),
+                datasets: [{
+                    label: 'Open tasks assigned',
+                    data: Object.values(workload),
+                    backgroundColor: '#696cff',
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    const activityLabels = {{ stats.activity_labels|tojson }};
+    const activityCounts = {{ stats.activity_counts|tojson }};
+    if (activityLabels.length) {
+        new Chart(document.getElementById('activityChart'), {
+            type: 'line',
+            data: {
+                labels: activityLabels,
+                datasets: [{
+                    label: 'Tasks created',
+                    data: activityCounts,
+                    borderColor: '#03c3ec',
+                    backgroundColor: 'rgba(3, 195, 236, 0.15)',
+                    fill: true,
+                    tension: 0.3,
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
