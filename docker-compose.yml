@@ -1,18 +1,24 @@
 services:
   app:
     build: .
-    ports:
-      - "8000:8000"
+    container_name: migration-app
+    expose:
+      - "8000"
     volumes:
       - uploads:/app/uploads
-    env_file: .env
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - backend
+      - swag-net
 
   db:
     image: postgres:16-alpine
+    container_name: migration-db
     environment:
       POSTGRES_DB: migration_platform
       POSTGRES_USER: ${POSTGRES_USER:-appuser}
@@ -25,20 +31,35 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - backend
 
   mailhog:
     image: mailhog/mailhog
+    container_name: migration-mailhog
     ports:
       - "8025:8025"
       - "1025:1025"
     profiles:
       - dev
+    networks:
+      - backend
 
   clamav:
     image: clamav/clamav
+    container_name: migration-clamav
     profiles:
       - security
+    networks:
+      - backend
 
 volumes:
   pg_data:
   uploads:
+
+networks:
+  backend:
+    driver: bridge
+
+  swag-net:
+    external: true
