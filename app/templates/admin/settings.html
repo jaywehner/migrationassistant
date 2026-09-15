@@ -5,15 +5,15 @@
     <h4 class="mb-0"><i class="bi bi-gear me-2"></i>System Settings</h4>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header bg-transparent">
-                <h6 class="mb-0"><i class="bi bi-envelope me-2"></i>Email / SMTP</h6>
-            </div>
-            <div class="card-body">
-                <form method="post" action="/admin/settings">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<form method="post" action="/admin/settings">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-envelope me-2"></i>Email / SMTP</h6>
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">SMTP Host</label>
                         <input type="text" class="form-control" name="smtp_host" value="{{ smtp_host }}" required>
@@ -51,22 +51,34 @@
                     </div>
                     <div id="test_email_status" class="mb-3" style="display: none;"></div>
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Save Settings</button>
                         <button type="button" class="btn btn-primary" style="background-color: #6f42c1; border-color: #6f42c1;" onclick="testEmailSettings()">Test Email</button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header bg-transparent">
-                <h6 class="mb-0"><i class="bi bi-sliders me-2"></i>Application Settings</h6>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-globe me-2"></i>Application URL</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">External URL</label>
+                        <input type="url" class="form-control" name="app_url" value="{{ app_url }}" required placeholder="https://migrations.example.com">
+                        <div class="form-text">
+                            This base URL is used in verification, password-reset, invite, and account emails.
+                            No trailing slash.
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="post" action="/admin/settings">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="card mt-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-sliders me-2"></i>Application Settings</h6>
+                </div>
+                <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Max Upload Size (MB)</label>
                         <input type="number" class="form-control" name="max_upload_size_mb" value="{{ max_upload_size_mb }}" min="1" max="500" required>
@@ -75,22 +87,24 @@
                         <label class="form-label">Session Expire Hours</label>
                         <input type="number" class="form-control" name="session_expire_hours" value="{{ session_expire_hours }}" min="1" max="720" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Save Settings</button>
-                </form>
+                </div>
             </div>
-        </div>
 
-        <div class="card mt-4">
-            <div class="card-header bg-transparent">
-                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h6>
-            </div>
-            <div class="card-body">
-                <p class="mb-1"><strong>Migration Collaboration Platform</strong></p>
-                <p class="text-muted small mb-0">Changes to these settings are written to the <code>.env</code> file and require a server restart to take full effect.</p>
+            <div class="card mt-4">
+                <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Migration Collaboration Platform</strong></p>
+                    <p class="text-muted small mb-0">Changes to these settings are written to the <code>.env</code> file and take effect immediately.</p>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">Save All Settings</button>
+    </div>
+</form>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -98,7 +112,7 @@
 async function testEmailSettings() {
     const form = document.querySelector('form[action="/admin/settings"]');
     const formData = new FormData(form);
-    
+
     // Add the test email recipient
     const testEmailTo = document.getElementById('test_email_to').value;
     if (!testEmailTo) {
@@ -106,23 +120,28 @@ async function testEmailSettings() {
         return;
     }
     formData.append('test_email_to', testEmailTo);
-    
+
     // Show loading state
     const testBtn = document.querySelector('button[onclick="testEmailSettings()"]');
     const originalText = testBtn.textContent;
     testBtn.textContent = 'Testing...';
     testBtn.disabled = true;
-    
+
     showStatus('info', 'Sending test email...');
-    
+
     try {
         const response = await fetch('/admin/settings/test', {
             method: 'POST',
             body: formData
         });
-        
-        const result = await response.json();
-        
+
+        let result = {};
+        try {
+            result = await response.json();
+        } catch (e) {
+            result = { detail: response.statusText };
+        }
+
         if (response.ok) {
             showStatus('success', 'Email test successful! Check your inbox for the test email.');
         } else {
@@ -139,10 +158,10 @@ async function testEmailSettings() {
 function showStatus(type, message) {
     const statusDiv = document.getElementById('test_email_status');
     statusDiv.style.display = 'block';
-    
+
     // Clear previous classes
     statusDiv.className = 'mb-3 alert';
-    
+
     // Add appropriate class based on type
     if (type === 'success') {
         statusDiv.classList.add('alert-success');
@@ -151,9 +170,9 @@ function showStatus(type, message) {
     } else if (type === 'info') {
         statusDiv.classList.add('alert-info');
     }
-    
+
     statusDiv.textContent = message;
-    
+
     // Auto-hide success messages after 5 seconds
     if (type === 'success') {
         setTimeout(() => {

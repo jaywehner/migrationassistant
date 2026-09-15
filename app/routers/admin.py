@@ -257,6 +257,7 @@ async def admin_settings(
         "smtp_from_name": settings.smtp_from_name,
         "max_upload_size_mb": settings.max_upload_size_mb,
         "session_expire_hours": settings.session_expire_hours,
+        "app_url": settings.app_url,
     })
 
 
@@ -272,6 +273,7 @@ async def admin_settings_update(
     smtp_from_name: str = Form(""),
     max_upload_size_mb: int = Form(25),
     session_expire_hours: int = Form(24),
+    app_url: str = Form(""),
     user: User = Depends(require_global_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -294,6 +296,7 @@ async def admin_settings_update(
             "SMTP_FROM_NAME": smtp_from_name,
             "MAX_UPLOAD_SIZE_MB": str(max_upload_size_mb),
             "SESSION_EXPIRE_HOURS": str(session_expire_hours),
+            "APP_URL": app_url.strip().rstrip("/"),
         }
 
         new_lines = []
