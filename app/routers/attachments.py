@@ -112,6 +112,36 @@ async def download_attachment(
     )
 
 
+@router.get("/attachments/{storage_key}/view")
+async def view_attachment(
+    request: Request,
+    storage_key: str,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Attachment).where(Attachment.storage_key == storage_key)
+    )
+    attachment = result.scalar_one_or_none()
+    if not attachment:
+        raise HTTPException(status_code=404)
+
+    # Verify user has access to the plan
+    if attachment.task_id:
+        plan_id = await get_plan_id_for_task(db, attachment.task_id)
+        role = await get_user_role_in_plan(db, plan_id, user.id)
+        if not role:
+            raise HTTPException(status_code=403)
+
+    path = get_storage_path(storage_key)
+    return FileResponse(
+        path,
+        media_type=attachment.mime_type,
+        filename=attachment.original_filename,
+        content_disposition_type="inline",
+    )
+
+
 @router.post("/attachments/{attachment_id}/delete")
 async def delete_attachment_route(
     request: Request,

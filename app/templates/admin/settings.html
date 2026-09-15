@@ -23,6 +23,21 @@
                         <input type="number" class="form-control" name="smtp_port" value="{{ smtp_port }}" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">SMTP Username</label>
+                        <input type="text" class="form-control" name="smtp_user" value="{{ smtp_user }}" placeholder="Leave empty if no authentication">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Password</label>
+                        <input type="password" class="form-control" name="smtp_password" value="{{ smtp_password }}" placeholder="Leave empty if no authentication">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SSL/TLS</label>
+                        <select class="form-select" name="smtp_use_tls">
+                            <option value="false" {% if not smtp_use_tls %}selected{% endif %}>None</option>
+                            <option value="true" {% if smtp_use_tls %}selected{% endif %}>TLS/STARTTLS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">From Email</label>
                         <input type="email" class="form-control" name="smtp_from_email" value="{{ smtp_from_email }}" required>
                     </div>
@@ -30,7 +45,15 @@
                         <label class="form-label">From Name</label>
                         <input type="text" class="form-control" name="smtp_from_name" value="{{ smtp_from_name }}" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                    <div class="mb-3">
+                        <label class="form-label">Test Email To</label>
+                        <input type="email" class="form-control" id="test_email_to" placeholder="Enter email to send test to">
+                    </div>
+                    <div id="test_email_status" class="mb-3" style="display: none;"></div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <button type="button" class="btn btn-primary" style="background-color: #6f42c1; border-color: #6f42c1;" onclick="testEmailSettings()">Test Email</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -68,4 +91,75 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function testEmailSettings() {
+    const form = document.querySelector('form[action="/admin/settings"]');
+    const formData = new FormData(form);
+    
+    // Add the test email recipient
+    const testEmailTo = document.getElementById('test_email_to').value;
+    if (!testEmailTo) {
+        showStatus('error', 'Please enter an email address to send the test to.');
+        return;
+    }
+    formData.append('test_email_to', testEmailTo);
+    
+    // Show loading state
+    const testBtn = document.querySelector('button[onclick="testEmailSettings()"]');
+    const originalText = testBtn.textContent;
+    testBtn.textContent = 'Testing...';
+    testBtn.disabled = true;
+    
+    showStatus('info', 'Sending test email...');
+    
+    try {
+        const response = await fetch('/admin/settings/test', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showStatus('success', 'Email test successful! Check your inbox for the test email.');
+        } else {
+            showStatus('error', 'Email test failed: ' + (result.detail || 'Unknown error'));
+        }
+    } catch (error) {
+        showStatus('error', 'Email test failed: ' + error.message);
+    } finally {
+        testBtn.textContent = originalText;
+        testBtn.disabled = false;
+    }
+}
+
+function showStatus(type, message) {
+    const statusDiv = document.getElementById('test_email_status');
+    statusDiv.style.display = 'block';
+    
+    // Clear previous classes
+    statusDiv.className = 'mb-3 alert';
+    
+    // Add appropriate class based on type
+    if (type === 'success') {
+        statusDiv.classList.add('alert-success');
+    } else if (type === 'error') {
+        statusDiv.classList.add('alert-danger');
+    } else if (type === 'info') {
+        statusDiv.classList.add('alert-info');
+    }
+    
+    statusDiv.textContent = message;
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 5000);
+    }
+}
+</script>
 {% endblock %}

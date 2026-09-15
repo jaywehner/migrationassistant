@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
     import app.models.note
     import app.models.attachment
     import app.models.audit
+    import app.models.step
     from app.database import Base
 
     settings = get_settings()
@@ -55,7 +56,7 @@ def create_app() -> FastAPI:
     # Middleware: Setup redirect
     @application.middleware("http")
     async def enforce_setup(request: Request, call_next):
-        if request.url.path.startswith("/setup") or request.url.path.startswith("/static"):
+        if request.url.path.startswith("/setup") or request.url.path.startswith("/static") or request.url.path == "/favicon.ico":
             return await call_next(request)
             
         from app.routers.setup import is_setup_complete
@@ -84,6 +85,16 @@ def create_app() -> FastAPI:
     @application.get("/")
     async def root():
         return RedirectResponse(url="/plans", status_code=303)
+
+    # Favicon
+    @application.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        favicon_path = os.path.join(static_dir, "favicon.ico")
+        if os.path.exists(favicon_path):
+            return FileResponse(favicon_path, media_type="image/x-icon")
+        # Return 404 if favicon doesn't exist
+        from fastapi.responses import Response
+        return Response(status_code=404)
 
     return application
 

@@ -13,6 +13,7 @@
     <table class="table table-hover align-middle">
         <thead>
             <tr>
+                {% if can_create %}<th style="width:30px;"></th>{% endif %}
                 <th>Title</th>
                 <th>Status</th>
                 <th>Progress</th>
@@ -21,13 +22,16 @@
                 <th>Due Date</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="task-list-body">
             {% for task in tasks %}
-            <tr class="cursor-pointer"
-                hx-get="/tasks/{{ task.id }}"
-                hx-target="#task-detail-panel"
-                hx-swap="innerHTML"
+            <tr class="cursor-pointer" data-task-id="{{ task.id }}"
+                onclick="if(!window.__taskDragged)window.location.href='/tasks/{{ task.id }}'"
                 style="cursor:pointer;">
+                {% if can_create %}
+                <td class="drag-handle text-muted" style="cursor:grab;" onclick="event.stopPropagation()">
+                    <i class="bi bi-grip-vertical"></i>
+                </td>
+                {% endif %}
                 <td class="fw-medium">{{ task.title }}</td>
                 <td>
                     {% set status_class = {
@@ -138,3 +142,31 @@
         </div>
     </div>
 </div>
+
+{% if can_create %}
+<script>
+(function() {
+    const tbody = document.getElementById('task-list-body');
+    if (!tbody || typeof Sortable === 'undefined') return;
+    Sortable.create(tbody, {
+        animation: 150,
+        handle: '.drag-handle',
+        onStart: function() { window.__taskDragged = true; },
+        onEnd: function() {
+            const order = Array.from(tbody.querySelectorAll('[data-task-id]'))
+                .map(el => el.dataset.taskId);
+            fetch('/plans/{{ plan_id }}/tabs/{{ tab.id }}/tasks/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCSRFToken()
+                },
+                body: JSON.stringify({ order: order })
+            }).finally(function() {
+                setTimeout(function() { window.__taskDragged = false; }, 100);
+            });
+        }
+    });
+})();
+</script>
+{% endif %}

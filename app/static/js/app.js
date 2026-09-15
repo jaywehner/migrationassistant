@@ -37,16 +37,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.addEventListener('htmx:configRequest', function(event) {
         event.detail.headers['X-CSRF-Token'] = getCSRFToken();
     });
-
-    // Slide-over close
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('slide-over-backdrop')) {
-            closeSlideOver();
-        }
-        if (e.target.closest('.slide-over-close')) {
-            closeSlideOver();
-        }
-    });
 });
 
 function getCSRFToken() {
@@ -57,23 +47,4 @@ function getCSRFToken() {
     return input ? input.value : '';
 }
 
-function openSlideOver() {
-    document.querySelector('.slide-over').classList.add('open');
-    document.querySelector('.slide-over-backdrop').classList.add('open');
-    document.body.style.overflow = 'hidden';
-}
 
-function closeSlideOver() {
-    const panel = document.querySelector('.slide-over');
-    const backdrop = document.querySelector('.slide-over-backdrop');
-    if (panel) panel.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('open');
-    document.body.style.overflow = '';
-}
-
-// Listen for HTMX events to open slide-over after task detail loads
-document.body.addEventListener('htmx:afterSwap', function(event) {
-    if (event.detail.target.classList.contains('slide-over')) {
-        openSlideOver();
-    }
-});

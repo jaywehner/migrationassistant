@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
-from functools import lru_cache
 
 
 class Settings(BaseSettings):
@@ -14,7 +13,6 @@ class Settings(BaseSettings):
 
     # Field encryption
     field_encryption_key: str = ""
-    secret_key: str = ""
 
     # SMTP
     smtp_host: str = "localhost"
@@ -43,9 +41,8 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
-@lru_cache()
 def get_settings() -> Settings:
     return Settings()
 
 def clear_settings_cache():
-    get_settings.cache_clear()
+    pass  # No longer needed without caching

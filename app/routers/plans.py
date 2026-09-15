@@ -23,7 +23,7 @@ from app.services.plan_service import (
     can_manage_members,
     can_edit_plan,
 )
-from app.services.auth_service import get_user_by_email, verify_invite_token
+from app.services.auth_service import get_user_by_email, verify_invite_token, validate_email_address
 from app.services.email_service import send_invite_email
 
 router = APIRouter(prefix="/plans", tags=["plans"])
@@ -146,6 +146,10 @@ async def invite_member(
     role = await get_user_role_in_plan(db, plan_id, user.id)
     if not role or not can_manage_members(role):
         raise HTTPException(status_code=403)
+
+    email_error = validate_email_address(email)
+    if email_error:
+        raise HTTPException(status_code=422, detail=email_error)
 
     plan = await get_plan_by_id(db, plan_id)
     try:

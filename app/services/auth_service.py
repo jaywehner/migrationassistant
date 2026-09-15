@@ -4,6 +4,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 import pyotp
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from email_validator import validate_email as _validate_email, EmailNotValidError
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,15 @@ from app.models.user import User
 from app.encryption import hash_email
 
 ph = PasswordHasher()
+
+
+def validate_email_address(email: str) -> str | None:
+    """Validate an email address. Returns an error message or None if valid."""
+    try:
+        _validate_email(email.strip(), check_deliverability=False)
+        return None
+    except EmailNotValidError:
+        return "Please enter a valid email address."
 
 
 def hash_password(password: str) -> str:

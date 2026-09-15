@@ -1,179 +1,438 @@
-<!-- Task detail slide-over content (loaded via HTMX) -->
+{% extends "base.html" %}
+{% block title %}{{ task.title }} - Migration Platform{% endblock %}
+{% block content %}
 <div class="d-flex justify-content-between align-items-start mb-3">
-    <h5 class="mb-0">{{ task.title }}</h5>
-    <button class="btn btn-sm btn-outline-secondary slide-over-close">
-        <i class="bi bi-x-lg"></i>
-    </button>
-</div>
-
-<!-- Status -->
-<div class="mb-3">
-    <label class="form-label small text-muted">Status</label>
-    <div class="d-flex align-items-center gap-2">
-        {% set status_class = {
-            'New': 'badge-new',
-            'Open': 'badge-open',
-            'Work In Progress': 'badge-wip',
-            'Waiting on Client': 'badge-waiting-client',
-            'Waiting on Vendor': 'badge-waiting-vendor',
-        } %}
-        <span class="badge status-badge {{ status_class.get(task.status.value, 'badge-closed-complete' if 'Complete' in task.status.value else 'badge-closed-not-needed') }}">
-            {{ task.status.value }}
-        </span>
-        {% if can_edit and valid_statuses %}
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Change</button>
-            <ul class="dropdown-menu">
-                {% for vs in valid_statuses %}
-                <li>
-                    <form hx-post="/tasks/{{ task.id }}/status" hx-target="closest .slide-over" hx-swap="innerHTML" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="status" value="{{ vs.value }}">
-                        <button class="dropdown-item" type="submit">{{ vs.value }}</button>
-                    </form>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
+    <div>
+        <a href="/plans/{{ plan_id }}" class="text-decoration-none small text-muted">
+            <i class="bi bi-arrow-left me-1"></i>Back to Plan
+        </a>
+        <h4 class="mb-0 mt-1">{{ task.title }}</h4>
     </div>
 </div>
 
-<!-- Progress -->
-<div class="mb-3">
-    <label class="form-label small text-muted">Progress</label>
-    <div class="d-flex align-items-center gap-2">
-        <div class="progress task-progress flex-grow-1" style="height:8px;">
-            <div class="progress-bar" style="width: {{ task.percent_complete }}%"></div>
-        </div>
-        <span class="fw-medium">{{ task.percent_complete }}%</span>
-    </div>
-</div>
-
-<!-- Assignment -->
-<div class="mb-3">
-    <label class="form-label small text-muted">Assigned To</label>
-    {% if can_edit %}
-    <form hx-post="/tasks/{{ task.id }}/assign" hx-target="closest .slide-over" hx-swap="innerHTML" class="d-flex gap-2">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <select name="assigned_to" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
-            <option value="">Unassigned</option>
-            {% for member in members %}
-            <option value="{{ member.user_id }}" {% if task.assigned_to == member.user_id %}selected{% endif %}>
-                {{ member.user.display_name }}
-            </option>
-            {% endfor %}
-        </select>
-    </form>
-    {% else %}
-    <p>{{ task.assignee.display_name if task.assignee else 'Unassigned' }}</p>
-    {% endif %}
-</div>
-
-<!-- Details -->
-{% if can_edit %}
-<form hx-post="/tasks/{{ task.id }}/edit" hx-target="closest .slide-over" hx-swap="innerHTML">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="mb-3">
-        <label class="form-label small text-muted">Title</label>
-        <input type="text" class="form-control form-control-sm" name="title" value="{{ task.title }}" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label small text-muted">Description</label>
-        <textarea class="form-control form-control-sm" name="description" rows="3">{{ task.description or '' }}</textarea>
-    </div>
-    <div class="row">
-        <div class="col-6 mb-3">
-            <label class="form-label small text-muted">% Complete: <span id="pct-label" class="fw-medium">{{ task.percent_complete }}%</span></label>
-            <input type="range" class="form-range" name="percent_complete" value="{{ task.percent_complete }}" min="0" max="100" step="10"
-                   oninput="document.getElementById('pct-label').textContent = this.value + '%'">
-        </div>
-        <div class="col-6 mb-3">
-            <label class="form-label small text-muted">Priority</label>
-            <select class="form-select form-select-sm" name="priority">
-                <option value="">None</option>
-                {% for p in all_priorities %}
-                <option value="{{ p.value }}" {% if task.priority == p %}selected{% endif %}>{{ p.value }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
-    <div class="mb-3">
-        <label class="form-label small text-muted">Due Date</label>
-        <input type="date" class="form-control form-control-sm" name="due_date" value="{{ task.due_date.isoformat() if task.due_date else '' }}">
-    </div>
-    <button type="submit" class="btn btn-sm btn-primary">Save Changes</button>
-</form>
-{% else %}
-<div class="mb-3">
-    <label class="form-label small text-muted">Description</label>
-    <p>{{ task.description or 'No description' }}</p>
-</div>
-{% endif %}
-
-<hr>
-
-<!-- Notes section -->
-<div class="mb-3">
-    <h6><i class="bi bi-chat-left-text me-1"></i>Notes</h6>
-    <div id="notes-list">
-        {% if task.notes %}
-        {% for note in task.notes|sort(attribute='created_at') %}
-        <div class="note-item mb-2">
-            <div class="d-flex justify-content-between">
-                <small class="fw-medium">{{ note.author.display_name }}</small>
-                <small class="text-muted">{{ note.created_at.strftime('%b %d, %Y %H:%M') }}</small>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Details</h6>
             </div>
-            <div class="small mt-1">{{ note.body }}</div>
+            <div class="card-body">
+                {% if can_edit %}
+                <form method="post" action="/tasks/{{ task.id }}/edit">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Title</label>
+                        <input type="text" class="form-control" name="title" value="{{ task.title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Description</label>
+                        <textarea class="form-control" name="description" rows="4">{{ task.description or '' }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small text-muted">% Complete: <span id="pct-label" class="fw-medium">{{ task.percent_complete }}%</span></label>
+                            <input type="range" class="form-range" name="percent_complete" value="{{ task.percent_complete }}" min="0" max="100" step="10"
+                                   oninput="document.getElementById('pct-label').textContent = this.value + '%'">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small text-muted">Priority</label>
+                            <select class="form-select" name="priority">
+                                <option value="">None</option>
+                                {% for p in all_priorities %}
+                                <option value="{{ p.value }}" {% if task.priority == p %}selected{% endif %}>{{ p.value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small text-muted">Due Date</label>
+                            <input type="date" class="form-control" name="due_date" value="{{ task.due_date.isoformat() if task.due_date else '' }}">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+                {% else %}
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Description</label>
+                    <p class="mb-0">{{ task.description or 'No description' }}</p>
+                </div>
+                {% if task.due_date %}
+                <div>
+                    <label class="form-label small text-muted">Due Date</label>
+                    <p class="mb-0">{{ task.due_date.strftime('%b %d, %Y') }}</p>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
-        {% endfor %}
-        {% else %}
-        <p class="text-muted small">No notes yet.</p>
-        {% endif %}
+
+        <!-- Steps -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-list-ol me-2"></i>Steps</h6>
+            </div>
+            <div class="card-body">
+                {% if task.steps %}
+                <ul id="steps-list" class="list-group list-group-flush" data-task-id="{{ task.id }}">
+                    {% for step in task.steps %}
+                    <li class="list-group-item d-flex align-items-start gap-2 px-0 step-item" data-step-id="{{ step.id }}">
+                        {% if can_edit %}
+                        <span class="step-drag-handle text-muted pt-1" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
+                        {% endif %}
+                        <span class="badge text-bg-secondary step-number mt-1">{{ loop.index }}</span>
+                        {% if can_edit %}
+                        <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/toggle" class="d-inline pt-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="checkbox" class="form-check-input" {% if step.is_done %}checked{% endif %}
+                                   onchange="this.form.submit()" title="Mark step done">
+                        </form>
+                        {% else %}
+                        <input type="checkbox" class="form-check-input mt-1" {% if step.is_done %}checked{% endif %} disabled>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="step-content small {% if step.is_done %}step-done{% endif %}">{{ step.title|safe }}</div>
+                            {% if can_edit %}
+                            <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/edit" class="step-edit-form d-none">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="title" class="step-html-input">
+                                <div class="step-edit-host"></div>
+                                <div class="mt-2 d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary step-edit-cancel">Cancel</button>
+                                </div>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% if can_edit %}
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-edit-btn" title="Edit step"><i class="bi bi-pencil"></i></button>
+                        <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/delete" class="d-inline pt-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Delete step"><i class="bi bi-x-lg"></i></button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-2">No steps yet.</p>
+                <ul id="steps-list" class="list-group list-group-flush" data-task-id="{{ task.id }}"></ul>
+                {% endif %}
+
+                {% if can_edit %}
+                <form method="post" action="/tasks/{{ task.id }}/steps/new" class="mt-3" id="new-step-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="title" class="step-html-input">
+                    <div id="new-step-editor-host"></div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Add Step</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Notes</h6>
+            </div>
+            <div class="card-body">
+                {% if task.notes %}
+                {% for note in task.notes|sort(attribute='created_at') %}
+                <div class="note-item mb-3 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between">
+                        <small class="fw-medium">{{ note.author.display_name }}</small>
+                        <small class="text-muted">{{ note.created_at.strftime('%b %d, %Y %H:%M') }}</small>
+                    </div>
+                    <div class="small mt-1">{{ note.body }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted small">No notes yet.</p>
+                {% endif %}
+
+                <form method="post" action="/tasks/{{ task.id }}/notes/new">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-2">
+                        <textarea class="form-control" name="body" rows="2" placeholder="Add a note (supports Markdown)..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Add Note</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Attachments -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-paperclip me-2"></i>Attachments</h6>
+            </div>
+            <div class="card-body">
+                {% if task.attachments %}
+                <ul class="list-unstyled">
+                    {% for att in task.attachments %}
+                    {% set ext = att.original_filename.rsplit('.', 1)[-1]|lower if '.' in att.original_filename else '' %}
+                    <li class="d-flex justify-content-between align-items-center py-1">
+                        <span>
+                            <a href="/attachments/{{ att.storage_key }}/download" class="text-decoration-none">
+                                <i class="bi bi-file-earmark me-1"></i>{{ att.original_filename }}
+                            </a>
+                            {% if ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico', 'pdf'] %}
+                            <a href="/attachments/{{ att.storage_key }}/view" target="_blank" rel="noopener"
+                               class="text-decoration-none ms-1" title="View in new window">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% endif %}
+                        </span>
+                        <small class="text-muted">{{ (att.size_bytes / 1024)|round(1) }} KB</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small">No attachments.</p>
+                {% endif %}
+
+                <form method="post" action="/tasks/{{ task.id }}/attachments/upload" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="input-group input-group-sm">
+                        <input type="file" class="form-control" name="file" required>
+                        <button type="submit" class="btn btn-outline-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <!-- Add note form -->
-    <form hx-post="/tasks/{{ task.id }}/notes/new" hx-target="closest .slide-over" hx-swap="innerHTML">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="mb-2">
-            <textarea class="form-control form-control-sm" name="body" rows="2" placeholder="Add a note (supports Markdown)..." required></textarea>
+    <div class="col-lg-4">
+        <!-- Status & Assignment -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Status</label>
+                    <div class="d-flex align-items-center gap-2">
+                        {% set status_class = {
+                            'New': 'badge-new',
+                            'Open': 'badge-open',
+                            'Work In Progress': 'badge-wip',
+                            'Waiting on Client': 'badge-waiting-client',
+                            'Waiting on Vendor': 'badge-waiting-vendor',
+                        } %}
+                        <span class="badge status-badge {{ status_class.get(task.status.value, 'badge-closed-complete' if 'Complete' in task.status.value else 'badge-closed-not-needed') }}">
+                            {{ task.status.value }}
+                        </span>
+                        {% if can_edit and valid_statuses %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Change</button>
+                            <ul class="dropdown-menu">
+                                {% for vs in valid_statuses %}
+                                <li>
+                                    <form method="post" action="/tasks/{{ task.id }}/status" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="status" value="{{ vs.value }}">
+                                        <button class="dropdown-item" type="submit">{{ vs.value }}</button>
+                                    </form>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Progress</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress task-progress flex-grow-1" style="height:8px;">
+                            <div class="progress-bar" style="width: {{ task.percent_complete }}%"></div>
+                        </div>
+                        <span class="fw-medium">{{ task.percent_complete }}%</span>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label small text-muted">Assigned To</label>
+                    {% if can_edit %}
+                    <form method="post" action="/tasks/{{ task.id }}/assign">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <select name="assigned_to" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">Unassigned</option>
+                            {% for member in members %}
+                            <option value="{{ member.user_id }}" {% if task.assigned_to == member.user_id %}selected{% endif %}>
+                                {{ member.user.display_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    {% else %}
+                    <p class="mb-0">{{ task.assignee.display_name if task.assignee else 'Unassigned' }}</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <button type="submit" class="btn btn-sm btn-outline-primary">Add Note</button>
-    </form>
-</div>
 
-<hr>
-
-<!-- Attachments section -->
-<div class="mb-3">
-    <h6><i class="bi bi-paperclip me-1"></i>Attachments</h6>
-    {% if task.attachments %}
-    <ul class="list-unstyled">
-        {% for att in task.attachments %}
-        <li class="d-flex justify-content-between align-items-center py-1">
-            <a href="/attachments/{{ att.storage_key }}/download" class="small text-decoration-none">
-                <i class="bi bi-file-earmark me-1"></i>{{ att.original_filename }}
-            </a>
-            <small class="text-muted">{{ (att.size_bytes / 1024)|round(1) }} KB</small>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-muted small">No attachments.</p>
-    {% endif %}
-
-    <form hx-post="/tasks/{{ task.id }}/attachments/upload" hx-target="closest .slide-over" hx-swap="innerHTML" hx-encoding="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="input-group input-group-sm">
-            <input type="file" class="form-control" name="file" required>
-            <button type="submit" class="btn btn-outline-primary">Upload</button>
+        <!-- Metadata -->
+        <div class="card">
+            <div class="card-body small text-muted">
+                <div>Created by {{ task.creator.display_name }} on {{ task.created_at.strftime('%b %d, %Y %H:%M') }}</div>
+                <div>Last updated {{ task.updated_at.strftime('%b %d, %Y %H:%M') }}</div>
+            </div>
         </div>
-    </form>
+    </div>
 </div>
+{% endblock %}
 
-<!-- Metadata -->
-<hr>
-<div class="small text-muted">
-    <div>Created by {{ task.creator.display_name }} on {{ task.created_at.strftime('%b %d, %Y %H:%M') }}</div>
-    <div>Last updated {{ task.updated_at.strftime('%b %d, %Y %H:%M') }}</div>
-</div>
+{% block extra_scripts %}
+<style>
+.step-editor-box {
+    min-height: 42px;
+    font-size: 0.875rem;
+}
+.step-editor-box:empty::before {
+    content: attr(data-placeholder);
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+}
+.step-editor-box ul, .step-editor-box ol,
+.step-content ul, .step-content ol {
+    margin-bottom: 0;
+    padding-left: 1.5rem;
+}
+.step-editor-box p, .step-content p { margin-bottom: 0.25rem; }
+.step-editor-box p:last-child, .step-content p:last-child { margin-bottom: 0; }
+ol.list-alpha { list-style-type: lower-alpha; }
+.step-done, .step-done * { text-decoration: line-through; color: var(--bs-secondary-color); }
+</style>
+<script>
+function buildStepEditor(host, initialHtml, placeholder) {
+    host.innerHTML =
+        '<div class="step-toolbar btn-group btn-group-sm mb-1" role="group">' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="strikeThrough" title="Strikethrough"><i class="bi bi-type-strikethrough"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="insertUnorderedList" title="Bullet list"><i class="bi bi-list-ul"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="insertOrderedList" title="Numbered list"><i class="bi bi-list-ol"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="alphaList" title="Alphabetical list"><i class="bi bi-sort-alpha-down"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="createLink" title="Insert link"><i class="bi bi-link-45deg"></i></button>' +
+        '</div>' +
+        '<div class="step-editor-box form-control" contenteditable="true" data-placeholder="' + (placeholder || '') + '"></div>';
+
+    const box = host.querySelector('.step-editor-box');
+    box.innerHTML = initialHtml || '';
+    host._editorBox = box;
+
+    host.querySelectorAll('.step-toolbar [data-cmd]').forEach(function(btn) {
+        btn.addEventListener('mousedown', function(e) { e.preventDefault(); });
+        btn.addEventListener('click', function() {
+            box.focus();
+            const cmd = btn.dataset.cmd;
+            if (cmd === 'createLink') {
+                const url = prompt('Enter URL:');
+                if (url) {
+                    document.execCommand('createLink', false, url);
+                    let n = window.getSelection().anchorNode;
+                    while (n && n !== box) {
+                        if (n.nodeName === 'A') { n.target = '_blank'; n.rel = 'noopener'; break; }
+                        n = n.parentNode;
+                    }
+                }
+            } else if (cmd === 'alphaList') {
+                document.execCommand('insertOrderedList');
+                let n = window.getSelection().anchorNode;
+                while (n && n !== box) {
+                    if (n.nodeName === 'OL') { n.classList.add('list-alpha'); break; }
+                    n = n.parentNode;
+                }
+            } else {
+                document.execCommand(cmd);
+                if (cmd === 'insertOrderedList') {
+                    let n = window.getSelection().anchorNode;
+                    while (n && n !== box) {
+                        if (n.nodeName === 'OL') { n.classList.remove('list-alpha'); break; }
+                        n = n.parentNode;
+                    }
+                }
+            }
+        });
+    });
+    return box;
+}
+
+function submitStepForm(form, box) {
+    const html = box.innerHTML.trim();
+    if (!box.textContent.trim()) return false;
+    form.querySelector('.step-html-input').value = html;
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // New-step editor
+    const newHost = document.getElementById('new-step-editor-host');
+    const newForm = document.getElementById('new-step-form');
+    if (newHost && newForm) {
+        const newBox = buildStepEditor(newHost, '', 'Add a step...');
+        newForm.addEventListener('submit', function(e) {
+            if (!submitStepForm(newForm, newBox)) e.preventDefault();
+        });
+    }
+
+    // Per-step edit mode
+    document.querySelectorAll('.step-item').forEach(function(item) {
+        const editBtn = item.querySelector('.step-edit-btn');
+        const form = item.querySelector('.step-edit-form');
+        const content = item.querySelector('.step-content');
+        const host = item.querySelector('.step-edit-host');
+        if (!editBtn || !form || !content || !host) return;
+
+        editBtn.addEventListener('click', function() {
+            content.classList.add('d-none');
+            editBtn.classList.add('d-none');
+            form.classList.remove('d-none');
+            if (!host._editorBox) {
+                buildStepEditor(host, content.innerHTML, '');
+            } else {
+                host._editorBox.innerHTML = content.innerHTML;
+            }
+            host._editorBox.focus();
+        });
+
+        form.querySelector('.step-edit-cancel').addEventListener('click', function() {
+            form.classList.add('d-none');
+            content.classList.remove('d-none');
+            editBtn.classList.remove('d-none');
+        });
+
+        form.addEventListener('submit', function(e) {
+            if (!submitStepForm(form, host._editorBox)) e.preventDefault();
+        });
+    });
+
+    // Step reorder via SortableJS
+    const list = document.getElementById('steps-list');
+    if (!list || typeof Sortable === 'undefined') return;
+
+    Sortable.create(list, {
+        handle: '.step-drag-handle',
+        animation: 150,
+        onEnd: function() {
+            const items = list.querySelectorAll('.step-item');
+            const order = [];
+
+            items.forEach(function(item, idx) {
+                const badge = item.querySelector('.step-number');
+                if (badge) badge.textContent = idx + 1;
+                order.push(item.dataset.stepId);
+            });
+
+            fetch('/tasks/{{ task.id }}/steps/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCSRFToken()
+                },
+                body: JSON.stringify({ order: order })
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

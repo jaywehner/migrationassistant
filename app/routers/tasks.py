@@ -19,6 +19,14 @@ from app.services.task_service import (
     assign_task,
     update_task,
     can_edit_task,
+    create_step,
+    get_step_by_id,
+    delete_step,
+    toggle_step,
+    update_step,
+    reorder_steps,
+    reorder_tasks,
+    sanitize_step_html,
 )
 
 router = APIRouter(tags=["tasks"])
@@ -76,10 +84,6 @@ async def task_detail(
     role = await get_user_role_in_plan(db, plan_id, user.id)
     if not role:
         raise HTTPException(status_code=404)
-
-    # Direct browser navigation (non-HTMX) gets the full plan page instead of the bare fragment
-    if request.headers.get("HX-Request") != "true":
-        return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
 
     members = await get_plan_members(db, plan_id)
     csrf_token = generate_csrf_token(request)
@@ -234,3 +238,176 @@ async def delete_task(
     await db.delete(task)
     await db.commit()
     return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/steps/new")
+async def create_step_route(
+    request: Request,
+    task_id: uuid.UUID,
+    title: str = Form(...),
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_task(role, task, user.id):
+        raise HTTPException(status_code=403)
+
+    clean_title = sanitize_step_html(title)
+    if not clean_title:
+        raise HTTPException(status_code=422, detail="Step title is required")
+
+    await create_step(db, task, clean_title, user.id, plan_id)
+    await db.commit()
+    return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/steps/{step_id}/delete")
+async def delete_step_route(
+    request: Request,
+    task_id: uuid.UUID,
+    step_id: uuid.UUID,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_task(role, task, user.id):
+        raise HTTPException(status_code=403)
+
+    step = await get_step_by_id(db, step_id)
+    if not step or step.task_id != task_id:
+        raise HTTPException(status_code=404)
+
+    await delete_step(db, step, task, user.id, plan_id)
+    await db.commit()
+    return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/steps/{step_id}/toggle")
+async def toggle_step_route(
+    request: Request,
+    task_id: uuid.UUID,
+    step_id: uuid.UUID,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_task(role, task, user.id):
+        raise HTTPException(status_code=403)
+
+    step = await get_step_by_id(db, step_id)
+    if not step or step.task_id != task_id:
+        raise HTTPException(status_code=404)
+
+    await toggle_step(db, step, task)
+    await db.commit()
+    return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/steps/{step_id}/edit")
+async def edit_step_route(
+    request: Request,
+    task_id: uuid.UUID,
+    step_id: uuid.UUID,
+    title: str = Form(...),
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_task(role, task, user.id):
+        raise HTTPException(status_code=403)
+
+    step = await get_step_by_id(db, step_id)
+    if not step or step.task_id != task_id:
+        raise HTTPException(status_code=404)
+
+    clean_title = sanitize_step_html(title)
+    if not clean_title:
+        raise HTTPException(status_code=422, detail="Step title is required")
+
+    await update_step(db, step, task, clean_title, user.id, plan_id)
+    await db.commit()
+    return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/steps/reorder")
+async def reorder_steps_route(
+    request: Request,
+    task_id: uuid.UUID,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_task(role, task, user.id):
+        raise HTTPException(status_code=403)
+
+    body = await request.json()
+    order = body.get("order", [])
+
+    step_ids = []
+    for sid in order:
+        try:
+            step_ids.append(uuid.UUID(sid))
+        except ValueError:
+            pass
+
+    await reorder_steps(db, task, step_ids, user.id, plan_id)
+    await db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/plans/{plan_id}/tabs/{tab_id}/tasks/reorder")
+async def reorder_tasks_route(
+    request: Request,
+    plan_id: uuid.UUID,
+    tab_id: uuid.UUID,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_create_tasks(role):
+        raise HTTPException(status_code=403)
+
+    body = await request.json()
+    order = body.get("order", [])
+
+    task_ids = []
+    for tid in order:
+        try:
+            task_ids.append(uuid.UUID(tid))
+        except ValueError:
+            pass
+
+    await reorder_tasks(db, tab_id, task_ids, user.id, plan_id)
+    await db.commit()
+    return {"status": "ok"}

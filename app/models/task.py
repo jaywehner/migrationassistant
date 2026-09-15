@@ -91,6 +91,7 @@ class Task(Base):
         nullable=True,
     )
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
@@ -104,3 +105,5 @@ class Task(Base):
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
     notes = relationship("TaskNote", back_populates="task", lazy="selectin", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="task", lazy="selectin", cascade="all, delete-orphan")
+    steps = relationship("TaskStep", back_populates="task", lazy="selectin", cascade="all, delete-orphan",
+                         order_by="TaskStep.position")

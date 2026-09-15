@@ -26,6 +26,7 @@ from app.services.auth_service import (
     generate_totp_secret,
     get_totp_uri,
     verify_totp,
+    validate_email_address,
 )
 from app.services.email_service import send_verification_email, send_password_reset_email
 
@@ -52,6 +53,10 @@ async def register_submit(
 ):
     await csrf_protect(request)
     errors = []
+
+    email_error = validate_email_address(email)
+    if email_error:
+        errors.append(email_error)
 
     if password != confirm_password:
         errors.append("Passwords do not match.")
@@ -300,6 +305,13 @@ async def forgot_password_submit(
     db: AsyncSession = Depends(get_db),
 ):
     await csrf_protect(request)
+    email_error = validate_email_address(email)
+    if email_error:
+        return templates.TemplateResponse("auth/forgot_password.html", {
+            "request": request,
+            "csrf_token": generate_csrf_token(request),
+            "errors": [email_error],
+        })
     # Always show success to prevent email enumeration
     user = await get_user_by_email(db, email)
     if user:

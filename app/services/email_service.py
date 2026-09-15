@@ -76,3 +76,22 @@ async def send_invite_email(to_email: str, plan_name: str, inviter_name: str, to
     <p>This invitation expires in 7 days.</p>
     """
     return await send_email(to_email, f"Invitation to {plan_name} - Migration Platform", html)
+
+
+async def send_new_account_email(to_email: str, password: str, display_name: str) -> bool:
+    """Send account credentials to a user created by an admin."""
+    settings = get_settings()
+    login_url = f"{settings.app_url}/auth/login"
+    html = f"""
+    <h2>Your Account Has Been Created</h2>
+    <p>Hi {display_name or to_email},</p>
+    <p>An administrator has created an account for you on the Migration Collaboration Platform.</p>
+    <p>Your login credentials:</p>
+    <ul>
+        <li><strong>Email:</strong> {to_email}</li>
+        <li><strong>Password:</strong> {password}</li>
+    </ul>
+    <p><a href="{login_url}">Log In</a></p>
+    <p>Please change your password after your first login.</p>
+    """
+    return await send_email(to_email, "Your Account Credentials - Migration Platform", html)

@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,7 +13,9 @@ from app.models.user import User, GlobalAccessLevel
 from app.models.audit import AuditLog
 from app.models.plan import PlanRole, MigrationPlan
 from app.services.plan_service import get_user_role_in_plan, get_plan_by_id
-from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password
+from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password, validate_email_address
+from app.services.email_service import send_new_account_email
+from app.services.email_service import send_email
 
 router = APIRouter(tags=["admin"])
 
@@ -127,6 +129,10 @@ async def admin_create_user(
     db: AsyncSession = Depends(get_db),
 ):
     await csrf_protect(request)
+    email_error = validate_email_address(email)
+    if email_error:
+        raise HTTPException(status_code=422, detail=email_error)
+
     if password != confirm_password:
         raise HTTPException(status_code=422, detail="Passwords do not match")
 
@@ -143,6 +149,7 @@ async def admin_create_user(
     new_user.global_access_level = level
     new_user.is_global_admin = level == GlobalAccessLevel.admin
     new_user.email_verified = True  # Admin-created users are pre-verified
+    await send_new_account_email(email.strip(), password, display_name.strip())
     await db.commit()
     return RedirectResponse(url="/admin/users", status_code=303)
 
@@ -243,6 +250,9 @@ async def admin_settings(
         "csrf_token": csrf_token,
         "smtp_host": settings.smtp_host,
         "smtp_port": settings.smtp_port,
+        "smtp_user": settings.smtp_user,
+        "smtp_password": settings.smtp_password,
+        "smtp_use_tls": settings.smtp_use_tls,
         "smtp_from_email": settings.smtp_from_email,
         "smtp_from_name": settings.smtp_from_name,
         "max_upload_size_mb": settings.max_upload_size_mb,
@@ -255,6 +265,9 @@ async def admin_settings_update(
     request: Request,
     smtp_host: str = Form(""),
     smtp_port: int = Form(1025),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_use_tls: str = Form("false"),
     smtp_from_email: str = Form(""),
     smtp_from_name: str = Form(""),
     max_upload_size_mb: int = Form(25),
@@ -274,6 +287,9 @@ async def admin_settings_update(
         updates = {
             "SMTP_HOST": smtp_host,
             "SMTP_PORT": str(smtp_port),
+            "SMTP_USER": smtp_user,
+            "SMTP_PASSWORD": smtp_password,
+            "SMTP_USE_TLS": smtp_use_tls.lower(),
             "SMTP_FROM_EMAIL": smtp_from_email,
             "SMTP_FROM_NAME": smtp_from_name,
             "MAX_UPLOAD_SIZE_MB": str(max_upload_size_mb),
@@ -296,5 +312,67 @@ async def admin_settings_update(
 
         with open(env_path, "w") as f:
             f.writelines(new_lines)
+        
+        # Update environment variables for immediate effect
+        for key, value in updates.items():
+            os.environ[key] = value
 
     return RedirectResponse(url="/admin/settings", status_code=303)
+
+
+@router.post("/admin/settings/test")
+async def admin_settings_test_email(
+    request: Request,
+    smtp_host: str = Form(""),
+    smtp_port: int = Form(1025),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_use_tls: str = Form("false"),
+    smtp_from_email: str = Form(""),
+    smtp_from_name: str = Form(""),
+    test_email_to: str = Form(""),
+    user: User = Depends(require_global_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    
+    # Validate test email
+    if not test_email_to:
+        return JSONResponse(content={"status": "error", "detail": "Please provide an email address to send the test to"}, status_code=400)
+    
+    # Test with the provided settings
+    import aiosmtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    message = MIMEMultipart("alternative")
+    message["From"] = f"{smtp_from_name} <{smtp_from_email}>"
+    message["To"] = test_email_to
+    message["Subject"] = "Email Configuration Test"
+    
+    html = f"""
+    <h2>Email Configuration Test</h2>
+    <p>This is a test email to verify your SMTP settings are working correctly.</p>
+    <p>If you received this email, your configuration is valid!</p>
+    <p>Settings used:</p>
+    <ul>
+        <li>Host: {smtp_host}</li>
+        <li>Port: {smtp_port}</li>
+        <li>TLS: {smtp_use_tls}</li>
+        <li>From: {smtp_from_email}</li>
+    </ul>
+    """
+    message.attach(MIMEText(html, "html"))
+    
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname=smtp_host,
+            port=smtp_port,
+            username=smtp_user or None,
+            password=smtp_password or None,
+            use_tls=smtp_use_tls.lower() == "true",
+        )
+        return JSONResponse(content={"status": "success", "message": "Test email sent successfully"})
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=400)
