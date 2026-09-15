@@ -62,12 +62,12 @@ async def is_setup_complete() -> bool:
 async def setup_index(request: Request):
     if await is_setup_complete():
         return RedirectResponse(url="/auth/login", status_code=303)
-        
+
     settings = get_settings()
     if not settings.database_url:
         return RedirectResponse(url="/setup/database", status_code=303)
-        
-    return RedirectResponse(url="/setup/admin", status_code=303)
+
+    return RedirectResponse(url="/setup/smtp", status_code=303)
 
 
 @router.get("/setup/database", response_class=HTMLResponse)
@@ -79,7 +79,7 @@ async def setup_database_get(request: Request):
         "request": request,
         "host": "localhost",
         "port": 5432,
-        "username": "postgres",
+        "username": "postgresmigration",
         "dbname": "migration_platform"
     })
 
@@ -89,7 +89,7 @@ async def setup_database_post(
     request: Request,
     host: str = Form("localhost"),
     port: int = Form(5432),
-    username: str = Form("postgres"),
+    username: str = Form("postgresmigration"),
     password: str = Form(""),
     dbname: str = Form("migration_platform")
 ):
@@ -187,6 +187,89 @@ async def setup_database_post(
             "error": "Database connection successful, but migrations failed.",
             "detail": str(e)
         })
+
+    return RedirectResponse(url="/setup/smtp", status_code=303)
+
+
+@router.get("/setup/smtp", response_class=HTMLResponse)
+async def setup_smtp_get(request: Request):
+    if await is_setup_complete():
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    settings = get_settings()
+    if not settings.database_url:
+        return RedirectResponse(url="/setup/database", status_code=303)
+
+    return templates.TemplateResponse("setup/smtp.html", {
+        "request": request,
+        "app_url": settings.app_url,
+        "smtp_host": settings.smtp_host,
+        "smtp_port": settings.smtp_port,
+        "smtp_user": settings.smtp_user,
+        "smtp_password": settings.smtp_password,
+        "smtp_use_tls": settings.smtp_use_tls,
+        "smtp_from_email": settings.smtp_from_email,
+        "smtp_from_name": settings.smtp_from_name,
+    })
+
+
+@router.post("/setup/smtp", response_class=HTMLResponse)
+async def setup_smtp_post(
+    request: Request,
+    app_url: str = Form("http://localhost:8000"),
+    smtp_host: str = Form("localhost"),
+    smtp_port: int = Form(1025),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_use_tls: str = Form("false"),
+    smtp_from_email: str = Form("noreply@migration-platform.local"),
+    smtp_from_name: str = Form("Migration Platform"),
+):
+    if await is_setup_complete():
+        return RedirectResponse(url="/auth/login", status_code=303)
+
+    settings = get_settings()
+    if not settings.database_url:
+        return RedirectResponse(url="/setup/database", status_code=303)
+
+    env_path = ".env"
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            lines = f.readlines()
+
+    updates = {
+        "APP_URL": app_url.strip().rstrip("/"),
+        "SMTP_HOST": smtp_host,
+        "SMTP_PORT": str(smtp_port),
+        "SMTP_USER": smtp_user,
+        "SMTP_PASSWORD": smtp_password,
+        "SMTP_USE_TLS": smtp_use_tls.lower(),
+        "SMTP_FROM_EMAIL": smtp_from_email,
+        "SMTP_FROM_NAME": smtp_from_name,
+    }
+
+    new_lines = []
+    seen = set()
+    for line in lines:
+        key = line.split("=")[0].strip() if "=" in line else ""
+        if key in updates:
+            new_lines.append(f"{key}={updates[key]}\n")
+            seen.add(key)
+        else:
+            new_lines.append(line)
+
+    for key, value in updates.items():
+        if key not in seen:
+            new_lines.append(f"{key}={value}\n")
+
+    with open(env_path, "w") as f:
+        f.writelines(new_lines)
+
+    for k, v in updates.items():
+        os.environ[k] = v
+
+    clear_settings_cache()
 
     return RedirectResponse(url="/setup/admin", status_code=303)
 

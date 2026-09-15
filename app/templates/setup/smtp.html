@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}SMTP & URL Setup - Migration Platform{% endblock %}
+{% block auth_content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7 col-lg-6 col-xl-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white text-center py-3 border-0">
+                <h4 class="mb-0">SMTP & URL Setup</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted text-center mb-4">
+                    Configure the public URL and optional SMTP relay. You can skip this step, but emails will not send until SMTP is configured.
+                </p>
+
+                <form method="post" action="/setup/smtp">
+                    <div class="mb-3">
+                        <label class="form-label">Application URL</label>
+                        <input type="url" class="form-control" name="app_url" value="{{ app_url }}" required placeholder="https://migrations.example.com">
+                        <div class="form-text">Used for verification, password-reset, and invitation links. No trailing slash.</div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Host</label>
+                        <input type="text" class="form-control" name="smtp_host" value="{{ smtp_host }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Port</label>
+                        <input type="number" class="form-control" name="smtp_port" value="{{ smtp_port }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Username</label>
+                        <input type="text" class="form-control" name="smtp_user" value="{{ smtp_user }}" placeholder="Leave empty if no authentication">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SMTP Password</label>
+                        <input type="password" class="form-control" name="smtp_password" value="{{ smtp_password }}" placeholder="Leave empty if no authentication">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">SSL/TLS</label>
+                        <select class="form-select" name="smtp_use_tls">
+                            <option value="false" {% if not smtp_use_tls %}selected{% endif %}>None</option>
+                            <option value="true" {% if smtp_use_tls %}selected{% endif %}>TLS/STARTTLS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">From Email</label>
+                        <input type="email" class="form-control" name="smtp_from_email" value="{{ smtp_from_email }}" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">From Name</label>
+                        <input type="text" class="form-control" name="smtp_from_name" value="{{ smtp_from_name }}" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Save &amp; Continue</button>
+                        <a href="/setup/admin" class="btn btn-outline-secondary">Skip for now</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

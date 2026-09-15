@@ -77,7 +77,7 @@ The included `docker-compose.yml` starts the FastAPI application and a PostgreSQ
 # 1. Create a .env file (or copy .env.example)
 # At minimum set:
 #   POSTGRES_PASSWORD=your-secure-db-password
-#   DATABASE_URL=postgresql+asyncpg://appuser:your-secure-db-password@db:5432/migration_platform
+#   DATABASE_URL=postgresql+asyncpg://postgresmigration:your-secure-db-password@db:5432/migration_platform
 #   SECRET_KEY=your-random-secret-key
 #   ENCRYPTION_KEY=your-32-byte-base64-fernet-key
 #
@@ -93,7 +93,8 @@ The included `docker-compose.yml` starts the FastAPI application and a PostgreSQ
 docker compose up --build
 ```
 
-Then open `http://localhost:8000` and complete the setup wizard.
+Then open `http://localhost:8000` and complete the setup wizard.  
+**Note:** when using Docker Compose, the database host is the service name `db`, not `localhost`, and the default PostgreSQL user is `postgresmigration`.
 
 To run with the optional local MailHog and ClamAV services for development/security testing:
 

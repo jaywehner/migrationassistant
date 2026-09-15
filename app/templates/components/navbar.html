@@ -17,8 +17,6 @@
                 <i class="bi bi-person-circle"></i> {{ current_user.display_name }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="/auth/mfa-setup"><i class="bi bi-shield-lock me-2"></i>MFA Setup</a></li>
-                <li><hr class="dropdown-divider"></li>
                 <li>
                     <form method="post" action="/auth/logout">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
