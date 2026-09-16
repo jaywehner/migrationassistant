@@ -114,6 +114,61 @@ def parse_database_url(db_url: str) -> dict:
     return defaults
 
 
+def ensure_keys_exist() -> None:
+    """Ensure SECRET_KEY and FIELD_ENCRYPTION_KEY exist and are valid in .env."""
+    env_path = ".env"
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            lines = f.readlines()
+            
+    updates = {}
+    settings = get_settings()
+    
+    if not settings.secret_key:
+        updates["SECRET_KEY"] = secrets.token_urlsafe(48)
+        
+    valid_fernet = False
+    if settings.field_encryption_key:
+        try:
+            Fernet(settings.field_encryption_key.encode())
+            valid_fernet = True
+        except ValueError:
+            pass
+            
+    if not valid_fernet:
+        updates["FIELD_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+
+    if not updates:
+        return
+        
+    new_lines = []
+    seen = set()
+    for line in lines:
+        key = line.split("=")[0].strip() if "=" in line else ""
+        if key in updates:
+            new_lines.append(f"{key}={updates[key]}\n")
+            seen.add(key)
+        else:
+            new_lines.append(line)
+
+    for key, value in updates.items():
+        if key not in seen:
+            new_lines.append(f"{key}={value}\n")
+
+    with open(env_path, "w") as f:
+        f.writelines(new_lines)
+        
+    for k, v in updates.items():
+        os.environ[k] = v
+        
+    clear_settings_cache()
+    
+    # Clear the encryption module's cached Fernet instance
+    import app.encryption
+    app.encryption._fernet = None
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_index(request: Request):
     if await is_setup_complete():
@@ -194,13 +249,6 @@ async def setup_database_post(
         "DATABASE_URL": db_url,
     }
     
-    # Generate keys if missing
-    settings = get_settings()
-    if not settings.secret_key:
-        updates["SECRET_KEY"] = secrets.token_urlsafe(48)
-    if not settings.field_encryption_key:
-        updates["FIELD_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
-        
     new_lines = []
     seen = set()
     for line in lines:
@@ -223,6 +271,7 @@ async def setup_database_post(
         os.environ[k] = v
         
     clear_settings_cache()
+    ensure_keys_exist()
     
     # Init DB and run Alembic migrations programmatically
     await init_db(force_reinit=True)
@@ -384,6 +433,8 @@ async def setup_admin_post(
     from app.database import AsyncSessionLocal
     if not AsyncSessionLocal:
         await init_db()
+        
+    ensure_keys_exist()
 
     async with AsyncSessionLocal() as session:
         # Double check if an admin already exists (race condition)
