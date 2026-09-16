@@ -27,8 +27,10 @@ from app.services.auth_service import (
     get_totp_uri,
     verify_totp,
     validate_email_address,
+    verify_invite_token,
 )
 from app.services.email_service import send_verification_email, send_password_reset_email
+from app.services.plan_service import get_invite_by_token, accept_invite
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,9 +38,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     csrf_token = generate_csrf_token(request)
+    errors = []
+    error = request.query_params.get("error")
+    if error:
+        errors.append(error)
     return templates.TemplateResponse("auth/register.html", {
         "request": request,
         "csrf_token": csrf_token,
+        "errors": errors,
+        "email": request.query_params.get("email", ""),
+        "display_name": request.query_params.get("display_name", ""),
     })
 
 
@@ -78,9 +87,27 @@ async def register_submit(
         })
 
     user = await create_user(db, email, password, display_name)
-    token = generate_email_verification_token(str(user.id))
-    await send_verification_email(email, token)
+
+    invite_token = request.session.pop("invite_token", None)
+    invite_plan_id = None
+    if invite_token:
+        invite_data = verify_invite_token(invite_token)
+        if invite_data and invite_data["email"].lower().strip() == email.lower().strip():
+            invite = await get_invite_by_token(db, invite_token)
+            if invite:
+                user.email_verified = True
+                await accept_invite(db, invite, user)
+                invite_plan_id = invite.plan_id
+
+    if not invite_plan_id:
+        token = generate_email_verification_token(str(user.id))
+        await send_verification_email(email, token)
+
     await db.commit()
+
+    if invite_plan_id:
+        request.session["user_id"] = str(user.id)
+        return RedirectResponse(url=f"/plans/{invite_plan_id}", status_code=303)
 
     return templates.TemplateResponse("auth/verify_email_sent.html", {
         "request": request,
@@ -120,9 +147,15 @@ async def verify_email(request: Request, token: str, db: AsyncSession = Depends(
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     csrf_token = generate_csrf_token(request)
+    errors = []
+    error = request.query_params.get("error")
+    if error:
+        errors.append(error)
     return templates.TemplateResponse("auth/login.html", {
         "request": request,
         "csrf_token": csrf_token,
+        "errors": errors,
+        "email": request.query_params.get("email", ""),
     })
 
 
@@ -184,6 +217,9 @@ async def login_submit(
     request.session["user_id"] = str(user.id)
     await db.commit()
 
+    invite_token = request.session.pop("invite_token", None)
+    if invite_token:
+        return RedirectResponse(url=f"/invite/{invite_token}", status_code=303)
     return RedirectResponse(url="/plans", status_code=303)
 
 
@@ -229,6 +265,9 @@ async def mfa_verify_submit(
     request.session["user_id"] = str(user.id)
     await db.commit()
 
+    invite_token = request.session.pop("invite_token", None)
+    if invite_token:
+        return RedirectResponse(url=f"/invite/{invite_token}", status_code=303)
     return RedirectResponse(url="/plans", status_code=303)
 
 
