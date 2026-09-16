@@ -20,6 +20,11 @@ router = APIRouter(tags=["setup"])
 
 _setup_complete = False
 
+
+def _setup_marker_path() -> str:
+    return os.path.join(get_settings().upload_dir, "." + "setup_complete")
+
+
 async def is_setup_complete() -> bool:
     """Returns True if the application is fully configured."""
     global _setup_complete
@@ -27,7 +32,7 @@ async def is_setup_complete() -> bool:
         return True
 
     # Check if `.setup_complete` file exists
-    if os.path.exists(".setup_complete"):
+    if os.path.exists(_setup_marker_path()):
         _setup_complete = True
         return True
 
@@ -50,7 +55,7 @@ async def is_setup_complete() -> bool:
             count = (await session.execute(select(func.count()).select_from(User).where(User.is_global_admin == True))).scalar()
             if count and count > 0:
                 # Setup is complete! Mark it.
-                with open(".setup_complete", "w") as f:
+                with open(_setup_marker_path(), "w") as f:
                     f.write("done")
                 _setup_complete = True
                 return True
@@ -440,7 +445,7 @@ async def setup_admin_post(
         # Double check if an admin already exists (race condition)
         count = (await session.execute(select(func.count()).select_from(User).where(User.is_global_admin == True))).scalar()
         if count and count > 0:
-            with open(".setup_complete", "w") as f:
+            with open(_setup_marker_path(), "w") as f:
                 f.write("done")
             global _setup_complete
             _setup_complete = True
@@ -455,7 +460,7 @@ async def setup_admin_post(
         await session.commit()
         
     # Mark setup as complete
-    with open(".setup_complete", "w") as f:
+    with open(_setup_marker_path(), "w") as f:
         f.write("done")
     _setup_complete = True
     

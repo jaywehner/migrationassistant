@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Members - {{ plan.name }}{% endblock %}
 {% block content %}
+{% if request.query_params.get('success') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <a href="/plans/{{ plan.id }}" class="text-decoration-none text-muted small">
@@ -32,6 +44,29 @@
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-send me-1"></i>Invite
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title mb-3">Add Existing User</h6>
+        <form method="post" action="/plans/{{ plan.id }}/members/add-existing" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="col-md-5">
+                <label for="existing_email" class="form-label small">Email Address</label>
+                <input type="email" class="form-control" id="existing_email" name="email" required placeholder="existing.user@example.com">
+            </div>
+            <div class="col-md-4">
+                <label for="existing_role" class="form-label small">Role</label>
+                <select class="form-select" id="existing_role" name="member_role">
+                    {% for r in roles %}
+                    <option value="{{ r }}" {% if r == 'contributor' %}selected{% endif %}>{{ r|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-success w-100">Add User</button>
             </div>
         </form>
     </div>

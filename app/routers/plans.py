@@ -8,7 +8,8 @@ from app.templating import templates
 from app.middleware.auth import require_auth
 from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User
-from app.models.plan import PlanRole
+from urllib.parse import quote
+from app.models.plan import PlanRole, PlanMember
 from app.services.plan_service import (
     get_user_plans,
     get_plan_by_id,
@@ -147,9 +148,14 @@ async def invite_member(
     if not role or not can_manage_members(role):
         raise HTTPException(status_code=403)
 
+    email = email.strip()
+
     email_error = validate_email_address(email)
     if email_error:
-        raise HTTPException(status_code=422, detail=email_error)
+        return RedirectResponse(
+            url=f"/plans/{plan_id}/members?error={quote(email_error)}",
+            status_code=303,
+        )
 
     plan = await get_plan_by_id(db, plan_id)
     try:
@@ -157,11 +163,70 @@ async def invite_member(
     except ValueError:
         target_role = PlanRole.contributor
 
-    invite = await create_invite(db, plan_id, email.strip(), target_role, user.id)
-    await send_invite_email(email.strip(), plan.name, user.display_name, invite.token)
+    invite = await create_invite(db, plan_id, email, target_role, user.id)
+    await db.commit()
+    email_sent = await send_invite_email(email, plan.name, user.display_name, invite.token)
+    if email_sent:
+        return RedirectResponse(
+            url=f"/plans/{plan_id}/members?success={quote(f'Invitation sent to {email}.')}",
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=f"/plans/{plan_id}/members?error={quote('Invitation was saved, but the email could not be sent. Please check the SMTP settings.')}",
+        status_code=303,
+    )
+
+
+@router.post("/{plan_id}/members/add-existing")
+async def add_existing_member(
+    request: Request,
+    plan_id: uuid.UUID,
+    email: str = Form(...),
+    member_role: str = Form("contributor"),
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_manage_members(role):
+        raise HTTPException(status_code=403)
+
+    email = email.strip()
+
+    email_error = validate_email_address(email)
+    if email_error:
+        return RedirectResponse(
+            url=f"/plans/{plan_id}/members?error={quote(email_error)}",
+            status_code=303,
+        )
+
+    target_user = await get_user_by_email(db, email)
+    if not target_user:
+        return RedirectResponse(
+            url=f"/plans/{plan_id}/members?error={quote('No user with that email address was found.')}",
+            status_code=303,
+        )
+
+    existing_role = await get_user_role_in_plan(db, plan_id, target_user.id)
+    if existing_role:
+        return RedirectResponse(
+            url=f"/plans/{plan_id}/members?error={quote('That user is already a member of this plan.')}",
+            status_code=303,
+        )
+
+    try:
+        target_role = PlanRole(member_role)
+    except ValueError:
+        target_role = PlanRole.contributor
+
+    db.add(PlanMember(plan_id=plan_id, user_id=target_user.id, role=target_role, invited_by=user.id))
     await db.commit()
 
-    return RedirectResponse(url=f"/plans/{plan_id}/members", status_code=303)
+    return RedirectResponse(
+        url=f"/plans/{plan_id}/members?success={quote(f'{target_user.display_name or email} was added to the plan.')}",
+        status_code=303,
+    )
 
 
 @router.post("/{plan_id}/members/{member_user_id}/remove")
