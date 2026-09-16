@@ -229,11 +229,11 @@ async def add_existing_member(
     )
 
 
-@router.post("/{plan_id}/members/{member_user_id}/remove")
+@router.post("/{plan_id}/members/{member_id}/remove")
 async def remove_plan_member(
     request: Request,
     plan_id: uuid.UUID,
-    member_user_id: uuid.UUID,
+    member_id: uuid.UUID,
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -242,7 +242,7 @@ async def remove_plan_member(
     if not role or not can_manage_members(role):
         raise HTTPException(status_code=403)
 
-    await remove_member(db, plan_id, member_user_id)
+    await remove_member(db, plan_id, member_id)
     await db.commit()
     return RedirectResponse(url=f"/plans/{plan_id}/members", status_code=303)
 

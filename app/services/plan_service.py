@@ -112,10 +112,10 @@ async def accept_invite(db: AsyncSession, invite: PlanInvite, user: User) -> Pla
     return member
 
 
-async def remove_member(db: AsyncSession, plan_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+async def remove_member(db: AsyncSession, plan_id: uuid.UUID, member_id: uuid.UUID) -> bool:
     result = await db.execute(
         select(PlanMember)
-        .where(PlanMember.plan_id == plan_id, PlanMember.user_id == user_id)
+        .where(PlanMember.id == member_id, PlanMember.plan_id == plan_id)
     )
     member = result.scalar_one_or_none()
     if member and member.role != PlanRole.owner:
@@ -128,12 +128,20 @@ async def change_member_role(db: AsyncSession, plan_id: uuid.UUID, user_id: uuid
     result = await db.execute(
         select(PlanMember)
         .where(PlanMember.plan_id == plan_id, PlanMember.user_id == user_id)
+        .order_by(PlanMember.joined_at.asc())
     )
-    member = result.scalar_one_or_none()
-    if member and member.role != PlanRole.owner:
-        member.role = new_role
-        return True
-    return False
+    members = list(result.scalars().all())
+    if not members:
+        return False
+    if any(m.role == PlanRole.owner for m in members):
+        return False
+
+    # Keep the oldest member row and remove the duplicates
+    first = members[0]
+    for m in members[1:]:
+        await db.delete(m)
+    first.role = new_role
+    return True
 
 
 def can_manage_members(role: PlanRole) -> bool:
