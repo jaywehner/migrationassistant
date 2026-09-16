@@ -1,13 +1,15 @@
 import uuid
 import os
+import re
 import secrets
+from urllib.parse import urlparse
 from cryptography.fernet import Fernet
 from fastapi import APIRouter, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import text, select, func
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.database import get_db, init_db, engine
+from app.database import get_db, init_db, engine, get_configured_database_url
 from app.templating import templates
 from app.config import get_settings, clear_settings_cache
 from app.services.auth_service import create_user
@@ -58,13 +60,67 @@ async def is_setup_complete() -> bool:
     return False
 
 
+async def is_db_initialized() -> bool:
+    """Return True if the database is reachable and the users table exists."""
+    global engine
+    if not engine:
+        await init_db()
+    if not engine:
+        return False
+    db_url = get_configured_database_url()
+    try:
+        async with engine.connect() as conn:
+            if db_url.startswith("sqlite"):
+                result = await conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+                )
+                return result.scalar() is not None
+            else:
+                result = await conn.execute(text("SELECT to_regclass('users')"))
+                return result.scalar() is not None
+    except Exception:
+        return False
+
+
+def parse_database_url(db_url: str) -> dict:
+    """Parse a SQLAlchemy database URL into setup-form fields."""
+    defaults = {
+        "host": "localhost",
+        "port": 5432,
+        "username": "postgresmigration",
+        "dbname": "migration_platform",
+        "password": "",
+    }
+    if not db_url:
+        return defaults
+
+    try:
+        # Normalize the asyncpg scheme so urlparse can handle it
+        url = db_url.replace("postgresql+asyncpg", "postgresql", 1)
+        parsed = urlparse(url)
+        if parsed.hostname:
+            defaults["host"] = parsed.hostname
+        if parsed.port:
+            defaults["port"] = parsed.port
+        if parsed.username:
+            defaults["username"] = parsed.username
+        if parsed.password is not None:
+            defaults["password"] = parsed.password
+        path = parsed.path.strip("/") if parsed.path else ""
+        if path:
+            defaults["dbname"] = path
+    except Exception:
+        pass
+    return defaults
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_index(request: Request):
     if await is_setup_complete():
         return RedirectResponse(url="/auth/login", status_code=303)
 
     settings = get_settings()
-    if not settings.database_url:
+    if not settings.database_url or not await is_db_initialized():
         return RedirectResponse(url="/setup/database", status_code=303)
 
     return RedirectResponse(url="/setup/smtp", status_code=303)
@@ -74,13 +130,17 @@ async def setup_index(request: Request):
 async def setup_database_get(request: Request):
     if await is_setup_complete():
         return RedirectResponse(url="/auth/login", status_code=303)
-        
+
+    settings = get_settings()
+    db_params = parse_database_url(settings.database_url)
+
     return templates.TemplateResponse("setup/database.html", {
         "request": request,
-        "host": "localhost",
-        "port": 5432,
-        "username": "postgresmigration",
-        "dbname": "migration_platform"
+        "host": db_params["host"],
+        "port": db_params["port"],
+        "username": db_params["username"],
+        "password": db_params["password"],
+        "dbname": db_params["dbname"],
     })
 
 
@@ -113,6 +173,7 @@ async def setup_database_post(
             "host": host,
             "port": port,
             "username": username,
+            "password": password,
             "dbname": dbname,
             "error": "Failed to connect to PostgreSQL. Please check your credentials.",
             "detail": error_msg,
@@ -183,6 +244,7 @@ async def setup_database_post(
             "host": host,
             "port": port,
             "username": username,
+            "password": password,
             "dbname": dbname,
             "error": "Database connection successful, but migrations failed.",
             "detail": str(e)
@@ -197,7 +259,7 @@ async def setup_smtp_get(request: Request):
         return RedirectResponse(url="/auth/login", status_code=303)
 
     settings = get_settings()
-    if not settings.database_url:
+    if not settings.database_url or not await is_db_initialized():
         return RedirectResponse(url="/setup/database", status_code=303)
 
     return templates.TemplateResponse("setup/smtp.html", {
@@ -278,9 +340,9 @@ async def setup_smtp_post(
 async def setup_admin_get(request: Request):
     if await is_setup_complete():
         return RedirectResponse(url="/auth/login", status_code=303)
-        
+
     settings = get_settings()
-    if not settings.database_url:
+    if not settings.database_url or not await is_db_initialized():
         return RedirectResponse(url="/setup/database", status_code=303)
         
     return templates.TemplateResponse("setup/admin.html", {
