@@ -62,14 +62,14 @@ async def is_setup_complete() -> bool:
 
 async def is_db_initialized() -> bool:
     """Return True if the database is reachable and the users table exists."""
-    global engine
-    if not engine:
+    import app.database
+    if not app.database.engine:
         await init_db()
-    if not engine:
+    if not app.database.engine:
         return False
     db_url = get_configured_database_url()
     try:
-        async with engine.connect() as conn:
+        async with app.database.engine.connect() as conn:
             if db_url.startswith("sqlite"):
                 result = await conn.execute(
                     text("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
@@ -231,13 +231,17 @@ async def setup_database_post(
     import alembic.command
     alembic_cfg = alembic.config.Config("alembic.ini")
     
-    # We must run migrations asynchronously using our current engine
-    # Alembic handles async engines using the env.py we updated earlier
     try:
-        # Run in a thread to avoid blocking the event loop since alembic.command is sync
+        # Create all tables directly using SQLAlchemy to ensure they exist
+        from app.database import engine as current_engine, Base
+        if current_engine:
+            async with current_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+                
+        # Stamp alembic to head so future migrations work
         import asyncio
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, alembic.command.upgrade, alembic_cfg, "head")
+        await loop.run_in_executor(None, alembic.command.stamp, alembic_cfg, "head")
     except Exception as e:
         return templates.TemplateResponse("setup/database.html", {
             "request": request,
@@ -246,7 +250,7 @@ async def setup_database_post(
             "username": username,
             "password": password,
             "dbname": dbname,
-            "error": "Database connection successful, but migrations failed.",
+            "error": "Database connection successful, but table creation failed.",
             "detail": str(e)
         })
 
