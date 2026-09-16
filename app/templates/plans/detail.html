@@ -59,10 +59,8 @@
         </li>
         {% endfor %}
     </ul>
-    {% if role.value in ('owner', 'admin') %}
-    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTabModal">
-        <i class="bi bi-plus"></i>
-    </button>
+    {% if role.value in ('owner', 'admin', 'contributor') %}
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTabModal">Add Process</button>
     {% endif %}
 </div>
 

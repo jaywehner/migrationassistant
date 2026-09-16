@@ -12,7 +12,7 @@ from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User
 from app.models.tab import ProcessTab
 from app.models.plan import PlanRole
-from app.services.plan_service import get_user_role_in_plan, can_edit_plan
+from app.services.plan_service import get_user_role_in_plan, can_edit_plan, can_create_tasks
 
 router = APIRouter(tags=["tabs"])
 
@@ -27,7 +27,7 @@ async def create_tab(
 ):
     await csrf_protect(request)
     role = await get_user_role_in_plan(db, plan_id, user.id)
-    if not role or not can_edit_plan(role):
+    if not role or not can_create_tasks(role):
         raise HTTPException(status_code=403)
 
     # Get max sort_order
