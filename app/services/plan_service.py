@@ -49,7 +49,7 @@ async def get_user_role_in_plan(db: AsyncSession, plan_id: uuid.UUID, user_id: u
         select(PlanMember.role)
         .where(PlanMember.plan_id == plan_id, PlanMember.user_id == user_id)
     )
-    return result.scalar_one_or_none()
+    return result.scalars().first()
 
 
 async def get_plan_members(db: AsyncSession, plan_id: uuid.UUID) -> list[PlanMember]:
@@ -91,6 +91,17 @@ async def get_invite_by_token(db: AsyncSession, token: str) -> PlanInvite | None
 
 async def accept_invite(db: AsyncSession, invite: PlanInvite, user: User) -> PlanMember:
     invite.accepted_at = datetime.now(timezone.utc)
+
+    result = await db.execute(
+        select(PlanMember)
+        .where(PlanMember.plan_id == invite.plan_id, PlanMember.user_id == user.id)
+    )
+    existing = result.scalars().first()
+    if existing:
+        if existing.role != PlanRole.owner and invite.role.value in ('admin', 'contributor', 'viewer'):
+            existing.role = invite.role
+        return existing
+
     member = PlanMember(
         plan_id=invite.plan_id,
         user_id=user.id,
