@@ -69,7 +69,7 @@ async def create_task_route(
         due_date=parsed_due,
     )
     await db.commit()
-    return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
+    return RedirectResponse(url=f"/plans/{plan_id}?tab={tab_id}", status_code=303)
 
 
 @router.get("/tasks/{task_id}", response_class=HTMLResponse)
@@ -239,9 +239,10 @@ async def delete_task(
     if not role or not can_create_tasks(role):
         raise HTTPException(status_code=403)
 
+    tab_id = task.tab_id
     await db.delete(task)
     await db.commit()
-    return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
+    return RedirectResponse(url=f"/plans/{plan_id}?tab={tab_id}", status_code=303)
 
 
 @router.post("/tasks/{task_id}/steps/new")

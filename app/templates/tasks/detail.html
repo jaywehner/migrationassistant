@@ -299,6 +299,8 @@
 }
 .step-editor-box p, .step-content p { margin-bottom: 0.25rem; }
 .step-editor-box p:last-child, .step-content p:last-child { margin-bottom: 0; }
+.step-editor-box pre, .step-content pre { padding: 0.5rem; margin-bottom: 0.25rem; background: var(--bs-tertiary-bg); border-radius: var(--bs-border-radius); white-space: pre-wrap; }
+.step-editor-box code, .step-content code { color: var(--bs-code-color); }
 ol.list-alpha { list-style-type: lower-alpha; }
 .step-done, .step-done * { text-decoration: line-through; color: var(--bs-secondary-color); }
 </style>
@@ -309,6 +311,8 @@ function buildStepEditor(host, initialHtml, placeholder) {
             '<button type="button" class="btn btn-outline-secondary" data-cmd="bold" title="Bold"><i class="bi bi-type-bold"></i></button>' +
             '<button type="button" class="btn btn-outline-secondary" data-cmd="italic" title="Italic"><i class="bi bi-type-italic"></i></button>' +
             '<button type="button" class="btn btn-outline-secondary" data-cmd="strikeThrough" title="Strikethrough"><i class="bi bi-type-strikethrough"></i></button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="inlineCode" title="Inline code">&lt;/&gt;</button>' +
+            '<button type="button" class="btn btn-outline-secondary" data-cmd="codeBlock" title="Code block"><i class="bi bi-code-square"></i></button>' +
             '<button type="button" class="btn btn-outline-secondary" data-cmd="insertUnorderedList" title="Bullet list"><i class="bi bi-list-ul"></i></button>' +
             '<button type="button" class="btn btn-outline-secondary" data-cmd="insertOrderedList" title="Numbered list"><i class="bi bi-list-ol"></i></button>' +
             '<button type="button" class="btn btn-outline-secondary" data-cmd="alphaList" title="Alphabetical list"><i class="bi bi-sort-alpha-down"></i></button>' +
@@ -342,6 +346,13 @@ function buildStepEditor(host, initialHtml, placeholder) {
                     if (n.nodeName === 'OL') { n.classList.add('list-alpha'); break; }
                     n = n.parentNode;
                 }
+            } else if (cmd === 'inlineCode') {
+                const selection = window.getSelection();
+                const text = selection.toString() || 'code';
+                const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                document.execCommand('insertHTML', false, '<code>' + escaped + '</code>');
+            } else if (cmd === 'codeBlock') {
+                document.execCommand('formatBlock', false, 'pre');
             } else {
                 document.execCommand(cmd);
                 if (cmd === 'insertOrderedList') {

@@ -84,7 +84,7 @@
     <ul class="nav nav-tabs process-tabs flex-grow-1" id="process-tabs" role="tablist">
         {% for tab in tabs %}
         <li class="nav-item" role="presentation" data-tab-id="{{ tab.id }}">
-            <button class="nav-link {% if loop.first %}active{% endif %} d-flex align-items-center gap-1"
+            <button class="nav-link {% if request.query_params.get('tab', '') == tab.id|string or (not request.query_params.get('tab') and loop.first) %}active{% endif %} d-flex align-items-center gap-1"
                     id="tab-{{ tab.id }}"
                     data-bs-toggle="tab"
                     data-bs-target="#tabcontent-{{ tab.id }}"
@@ -153,8 +153,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-load first tab's tasks
-    const firstTab = document.querySelector('#process-tabs .nav-link');
-    if (firstTab) firstTab.click();
+    const activeTab = document.querySelector('#process-tabs .nav-link.active') || document.querySelector('#process-tabs .nav-link');
+    if (activeTab) activeTab.click();
 
     // Tab reorder via SortableJS
     const tabList = document.getElementById('process-tabs');

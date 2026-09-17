@@ -26,6 +26,7 @@
         <tbody id="task-list-body">
             {% for task in tasks %}
             <tr class="cursor-pointer" data-task-id="{{ task.id }}"
+                {% if task.description %}title="{{ task.description }}"{% endif %}
                 onclick="if(!window.__taskDragged)window.location.href='/tasks/{{ task.id }}'"
                 style="cursor:pointer;">
                 {% if can_create %}

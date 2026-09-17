@@ -170,7 +170,7 @@ def can_edit_task(role: PlanRole, task: Task, user_id: uuid.UUID) -> bool:
 
 STEP_ALLOWED_TAGS = [
     "b", "strong", "i", "em", "s", "strike", "del", "u",
-    "ul", "ol", "li", "a", "br", "p", "div", "span",
+    "ul", "ol", "li", "a", "br", "p", "div", "span", "code", "pre",
 ]
 STEP_ALLOWED_PROTOCOLS = ["http", "https", "mailto"]
 
