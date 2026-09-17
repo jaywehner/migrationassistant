@@ -103,6 +103,7 @@
                             </form>
                             {% endif %}
                         </div>
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-copy-btn" title="Copy step to clipboard"><i class="bi bi-clipboard"></i></button>
                         {% if can_edit %}
                         <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-edit-btn" title="Edit step"><i class="bi bi-pencil"></i></button>
                         <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/delete" class="d-inline pt-1">
@@ -376,6 +377,32 @@ function submitStepForm(form, box) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.step-copy-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            const content = this.closest('.step-item').querySelector('.step-content');
+            const text = content.innerText.trim();
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (error) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            }
+            const icon = this.querySelector('i');
+            icon.className = 'bi bi-check-lg text-success';
+            this.title = 'Copied';
+            setTimeout(function() {
+                icon.className = 'bi bi-clipboard';
+                btn.title = 'Copy step to clipboard';
+            }, 1500);
+        });
+    });
+
     // New-step editor
     const newHost = document.getElementById('new-step-editor-host');
     const newForm = document.getElementById('new-step-form');
