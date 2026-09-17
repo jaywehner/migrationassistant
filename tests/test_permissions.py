@@ -18,8 +18,8 @@ class TestPlanPermissions:
     def test_admin_can_manage_members(self):
         assert can_manage_members(PlanRole.admin) is True
 
-    def test_contributor_cannot_manage_members(self):
-        assert can_manage_members(PlanRole.contributor) is False
+    def test_contributor_can_manage_members(self):
+        assert can_manage_members(PlanRole.contributor) is True
 
     def test_viewer_cannot_manage_members(self):
         assert can_manage_members(PlanRole.viewer) is False
@@ -30,8 +30,8 @@ class TestPlanPermissions:
     def test_admin_can_edit_plan(self):
         assert can_edit_plan(PlanRole.admin) is True
 
-    def test_contributor_cannot_edit_plan(self):
-        assert can_edit_plan(PlanRole.contributor) is False
+    def test_contributor_can_edit_plan(self):
+        assert can_edit_plan(PlanRole.contributor) is True
 
     def test_viewer_cannot_edit_plan(self):
         assert can_edit_plan(PlanRole.viewer) is False
@@ -77,13 +77,13 @@ class TestTaskPermissions:
         task = self._make_task(assigned_to=user_id)
         assert can_edit_task(PlanRole.contributor, task, user_id) is True
 
-    def test_contributor_cannot_edit_unassigned_task(self):
+    def test_contributor_can_edit_unassigned_task(self):
         task = self._make_task()
-        assert can_edit_task(PlanRole.contributor, task, uuid.uuid4()) is False
+        assert can_edit_task(PlanRole.contributor, task, uuid.uuid4()) is True
 
-    def test_contributor_cannot_edit_other_user_task(self):
+    def test_contributor_can_edit_other_user_task(self):
         task = self._make_task(assigned_to=uuid.uuid4())
-        assert can_edit_task(PlanRole.contributor, task, uuid.uuid4()) is False
+        assert can_edit_task(PlanRole.contributor, task, uuid.uuid4()) is True
 
     def test_viewer_cannot_edit_any_task(self):
         task = self._make_task()

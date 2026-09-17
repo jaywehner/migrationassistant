@@ -107,6 +107,40 @@ async def plan_detail(
     })
 
 
+@router.post("/{plan_id}/edit")
+async def edit_plan(
+    request: Request,
+    plan_id: uuid.UUID,
+    name: str = Form(...),
+    description: str = Form(""),
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_edit_plan(role):
+        raise HTTPException(status_code=403)
+
+    plan = await get_plan_by_id(db, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404)
+
+    name = name.strip()
+    if not name:
+        return RedirectResponse(
+            url=f"/plans/{plan_id}?error={quote('Plan name is required.')}",
+            status_code=303,
+        )
+
+    plan.name = name
+    plan.description = description.strip()
+    await db.commit()
+    return RedirectResponse(
+        url=f"/plans/{plan_id}?success={quote('Plan details updated.')}",
+        status_code=303,
+    )
+
+
 @router.get("/{plan_id}/members", response_class=HTMLResponse)
 async def plan_members_page(
     request: Request,

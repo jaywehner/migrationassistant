@@ -163,7 +163,7 @@ async def delete_attachment_route(
         plan_id = await get_plan_id_for_task(db, attachment.task_id)
         role = await get_user_role_in_plan(db, plan_id, user.id)
         from app.models.plan import PlanRole
-        if attachment.uploader_id != user.id and role not in (PlanRole.owner, PlanRole.admin):
+        if attachment.uploader_id != user.id and role not in (PlanRole.owner, PlanRole.admin, PlanRole.contributor):
             raise HTTPException(status_code=403)
 
     delete_file(attachment.storage_key)

@@ -165,11 +165,7 @@ async def update_task(
 
 def can_edit_task(role: PlanRole, task: Task, user_id: uuid.UUID) -> bool:
     """Check if user can edit this task based on their role."""
-    if role in (PlanRole.owner, PlanRole.admin):
-        return True
-    if role == PlanRole.contributor and task.assigned_to == user_id:
-        return True
-    return False
+    return role in (PlanRole.owner, PlanRole.admin, PlanRole.contributor)
 
 
 STEP_ALLOWED_TAGS = [

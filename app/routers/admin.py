@@ -32,7 +32,7 @@ async def audit_log(
     db: AsyncSession = Depends(get_db),
 ):
     role = await get_user_role_in_plan(db, plan_id, user.id)
-    if not role or role not in (PlanRole.owner, PlanRole.admin):
+    if not role or role not in (PlanRole.owner, PlanRole.admin, PlanRole.contributor):
         raise HTTPException(status_code=403)
 
     plan = await get_plan_by_id(db, plan_id)

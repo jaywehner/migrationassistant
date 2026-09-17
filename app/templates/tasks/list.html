@@ -20,6 +20,7 @@
                 <th>Assigned To</th>
                 <th>Priority</th>
                 <th>Due Date</th>
+                {% if can_create %}<th class="text-end">Actions</th>{% endif %}
             </tr>
         </thead>
         <tbody id="task-list-body">
@@ -77,6 +78,16 @@
                     <small>{{ task.due_date.strftime('%b %d') }}</small>
                     {% endif %}
                 </td>
+                {% if can_create %}
+                <td class="text-end" onclick="event.stopPropagation()">
+                    <form method="post" action="/tasks/{{ task.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this task? This cannot be undone.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete task">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

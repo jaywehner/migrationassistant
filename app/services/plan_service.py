@@ -145,11 +145,11 @@ async def change_member_role(db: AsyncSession, plan_id: uuid.UUID, user_id: uuid
 
 
 def can_manage_members(role: PlanRole) -> bool:
-    return role in (PlanRole.owner, PlanRole.admin)
+    return role in (PlanRole.owner, PlanRole.admin, PlanRole.contributor)
 
 
 def can_edit_plan(role: PlanRole) -> bool:
-    return role in (PlanRole.owner, PlanRole.admin)
+    return role in (PlanRole.owner, PlanRole.admin, PlanRole.contributor)
 
 
 def can_create_tasks(role: PlanRole) -> bool:

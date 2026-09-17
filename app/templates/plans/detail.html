@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ plan.name }} - Migration Platform{% endblock %}
 {% block content %}
+{% if request.query_params.get('success') %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ request.query_params.get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-1">{{ plan.name }}</h4>
@@ -9,7 +21,10 @@
         {% endif %}
     </div>
     <div class="d-flex gap-2">
-        {% if role.value in ('owner', 'admin') %}
+        {% if role.value in ('owner', 'admin', 'contributor') %}
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editPlanModal">
+            <i class="bi bi-pencil me-1"></i>Edit Plan
+        </button>
         <a href="/plans/{{ plan.id }}/members" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-people me-1"></i>Members
         </a>
@@ -34,6 +49,36 @@
     </div>
 </div>
 
+{% if role.value in ('owner', 'admin', 'contributor') %}
+<div class="modal fade" id="editPlanModal" tabindex="-1" aria-labelledby="editPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/plans/{{ plan.id }}/edit">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPlanModalLabel">Edit Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-3">
+                        <label for="plan_name" class="form-label">Plan Name</label>
+                        <input type="text" class="form-control" id="plan_name" name="name" value="{{ plan.name }}" maxlength="200" required>
+                    </div>
+                    <div>
+                        <label for="plan_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="plan_description" name="description" rows="4" maxlength="2000">{{ plan.description or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Process Tabs -->
 <div class="d-flex align-items-center gap-2 mb-3">
     <ul class="nav nav-tabs process-tabs flex-grow-1" id="process-tabs" role="tablist">
@@ -49,7 +94,7 @@
                     hx-swap="innerHTML">
                 <i class="bi bi-grip-vertical drag-handle small"></i>
                 <span>{{ tab.name }}</span>
-                {% if role.value in ('owner', 'admin') %}
+                {% if role.value in ('owner', 'admin', 'contributor') %}
                 <span class="ms-1 tab-actions">
                     <i class="bi bi-pencil small text-muted tab-rename-btn" data-tab-id="{{ tab.id }}" data-tab-name="{{ tab.name }}" title="Rename"></i>
                     <i class="bi bi-x small text-muted tab-delete-btn" data-tab-id="{{ tab.id }}" title="Delete"></i>

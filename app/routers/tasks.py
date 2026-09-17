@@ -51,6 +51,9 @@ async def create_task_route(
         raise HTTPException(status_code=403)
 
     assignee_id = uuid.UUID(assigned_to) if assigned_to else None
+    if assignee_id and not await get_user_role_in_plan(db, plan_id, assignee_id):
+        raise HTTPException(status_code=422, detail="Assignee must be a member of this plan")
+
     parsed_due = None
     if due_date:
         try:
@@ -161,6 +164,9 @@ async def assign_task_route(
         raise HTTPException(status_code=403)
 
     assignee_id = uuid.UUID(assigned_to) if assigned_to else None
+    if assignee_id and not await get_user_role_in_plan(db, plan_id, assignee_id):
+        raise HTTPException(status_code=422, detail="Assignee must be a member of this plan")
+
     await assign_task(db, task, assignee_id, user.id, plan_id)
     await db.commit()
 
@@ -230,10 +236,8 @@ async def delete_task(
 
     plan_id = await get_plan_id_for_task(db, task_id)
     role = await get_user_role_in_plan(db, plan_id, user.id)
-    if not role or role not in ("owner", "admin"):
-        from app.models.plan import PlanRole
-        if role not in (PlanRole.owner, PlanRole.admin):
-            raise HTTPException(status_code=403)
+    if not role or not can_create_tasks(role):
+        raise HTTPException(status_code=403)
 
     await db.delete(task)
     await db.commit()
