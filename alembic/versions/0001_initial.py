@@ -102,7 +102,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(length=5000), nullable=True),
         sa.Column("status", sa.Enum(
             "New", "Open", "Waiting on Client", "Waiting on Vendor",
-            "Work In Progress", "Closed – Not Needed", "Closed – Complete",
+            "Work In Progress", "Closed - Not Needed", "Closed - Complete",
             name="taskstatus"
         ), nullable=False, server_default="New"),
         sa.Column("percent_complete", sa.Integer(), nullable=False, server_default="0"),
