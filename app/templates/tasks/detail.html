@@ -3,7 +3,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
-        <a href="/plans/{{ plan_id }}" class="text-decoration-none small text-muted">
+        <a href="/plans/{{ plan_id }}?tab={{ task.tab_id }}" class="text-decoration-none small text-muted">
             <i class="bi bi-arrow-left me-1"></i>Back to Plan
         </a>
         <h4 class="mb-0 mt-1">{{ task.title }}</h4>
