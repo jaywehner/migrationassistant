@@ -198,11 +198,12 @@ async def create_step(
     db: AsyncSession,
     task: Task,
     title: str,
+    code: str,
     actor_id: uuid.UUID,
     plan_id: uuid.UUID,
 ) -> TaskStep:
     next_position = max((s.position for s in task.steps), default=0) + 1
-    step = TaskStep(task_id=task.id, title=title, position=next_position)
+    step = TaskStep(task_id=task.id, title=title, code=code, position=next_position)
     db.add(step)
     await db.flush()
 
@@ -253,16 +254,18 @@ async def update_step(
     step: TaskStep,
     task: Task,
     title: str,
+    code: str,
     actor_id: uuid.UUID,
     plan_id: uuid.UUID,
 ) -> None:
     await log_action(
         db, plan_id, actor_id,
         "task", str(task.id), "step_updated",
-        old_value={"title": step.title},
-        new_value={"title": title},
+        old_value={"title": step.title, "code": step.code},
+        new_value={"title": title, "code": code},
     )
     step.title = title
+    step.code = code
 
 
 async def reorder_steps(

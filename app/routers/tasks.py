@@ -250,6 +250,7 @@ async def create_step_route(
     request: Request,
     task_id: uuid.UUID,
     title: str = Form(...),
+    code: str = Form(""),
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -267,7 +268,7 @@ async def create_step_route(
     if not clean_title:
         raise HTTPException(status_code=422, detail="Step title is required")
 
-    await create_step(db, task, clean_title, user.id, plan_id)
+    await create_step(db, task, clean_title, code, user.id, plan_id)
     await db.commit()
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -332,6 +333,7 @@ async def edit_step_route(
     task_id: uuid.UUID,
     step_id: uuid.UUID,
     title: str = Form(...),
+    code: str = Form(""),
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -353,7 +355,7 @@ async def edit_step_route(
     if not clean_title:
         raise HTTPException(status_code=422, detail="Step title is required")
 
-    await update_step(db, step, task, clean_title, user.id, plan_id)
+    await update_step(db, step, task, clean_title, code, user.id, plan_id)
     await db.commit()
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 

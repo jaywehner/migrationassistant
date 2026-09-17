@@ -73,6 +73,10 @@
             </div>
             <div class="card-body">
                 {% if task.steps %}
+                <div class="row g-2 border-bottom pb-2 mb-1 small fw-semibold text-muted">
+                    <div class="col-7 ps-5">Step Description</div>
+                    <div class="col-5">Code</div>
+                </div>
                 <ul id="steps-list" class="list-group list-group-flush" data-task-id="{{ task.id }}">
                     {% for step in task.steps %}
                     <li class="list-group-item d-flex align-items-start gap-2 px-0 step-item" data-step-id="{{ step.id }}">
@@ -89,13 +93,25 @@
                         {% else %}
                         <input type="checkbox" class="form-check-input mt-1" {% if step.is_done %}checked{% endif %} disabled>
                         {% endif %}
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-copy-btn" title="Copy step description"><i class="bi bi-clipboard"></i></button>
                         <div class="flex-grow-1">
-                            <div class="step-content small {% if step.is_done %}step-done{% endif %}">{{ step.title|safe }}</div>
+                            <div class="row g-2 step-display">
+                                <div class="col-md-7">
+                                    <div class="step-content small {% if step.is_done %}step-done{% endif %}">{{ step.title|safe }}</div>
+                                </div>
+                                <div class="col-md-5 d-flex align-items-start gap-1">
+                                    <pre class="step-code small flex-grow-1 mb-0">{{ step.code }}</pre>
+                                    <button type="button" class="btn btn-sm btn-link text-muted p-0 step-code-copy-btn" title="Copy code"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                            </div>
                             {% if can_edit %}
                             <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/edit" class="step-edit-form d-none">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="title" class="step-html-input">
-                                <div class="step-edit-host"></div>
+                                <div class="row g-2">
+                                    <div class="col-md-7"><div class="step-edit-host"></div></div>
+                                    <div class="col-md-5"><textarea class="form-control form-control-sm font-monospace" name="code" rows="4" placeholder="Code">{{ step.code }}</textarea></div>
+                                </div>
                                 <div class="mt-2 d-flex gap-2">
                                     <button type="submit" class="btn btn-sm btn-primary">Save</button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary step-edit-cancel">Cancel</button>
@@ -103,7 +119,6 @@
                             </form>
                             {% endif %}
                         </div>
-                        <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-copy-btn" title="Copy step to clipboard"><i class="bi bi-clipboard"></i></button>
                         {% if can_edit %}
                         <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-edit-btn" title="Edit step"><i class="bi bi-pencil"></i></button>
                         <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/delete" class="d-inline pt-1">
@@ -123,7 +138,16 @@
                 <form method="post" action="/tasks/{{ task.id }}/steps/new" class="mt-3" id="new-step-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="title" class="step-html-input">
-                    <div id="new-step-editor-host"></div>
+                    <div class="row g-2">
+                        <div class="col-md-7">
+                            <label class="form-label small">Step Description</label>
+                            <div id="new-step-editor-host"></div>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="new-step-code" class="form-label small">Code</label>
+                            <textarea class="form-control form-control-sm font-monospace" id="new-step-code" name="code" rows="4" placeholder="Optional code"></textarea>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Add Step</button>
                 </form>
                 {% endif %}
@@ -398,7 +422,32 @@ document.addEventListener('DOMContentLoaded', function() {
             this.title = 'Copied';
             setTimeout(function() {
                 icon.className = 'bi bi-clipboard';
-                btn.title = 'Copy step to clipboard';
+                btn.title = 'Copy step description';
+            }, 1500);
+        });
+    });
+
+    document.querySelectorAll('.step-code-copy-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            const text = this.closest('.step-item').querySelector('.step-code').innerText;
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (error) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            }
+            const icon = this.querySelector('i');
+            icon.className = 'bi bi-check-lg text-success';
+            this.title = 'Copied';
+            setTimeout(function() {
+                icon.className = 'bi bi-clipboard';
+                btn.title = 'Copy code';
             }, 1500);
         });
     });
@@ -418,11 +467,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const editBtn = item.querySelector('.step-edit-btn');
         const form = item.querySelector('.step-edit-form');
         const content = item.querySelector('.step-content');
+        const display = item.querySelector('.step-display');
         const host = item.querySelector('.step-edit-host');
-        if (!editBtn || !form || !content || !host) return;
+        if (!editBtn || !form || !content || !display || !host) return;
 
         editBtn.addEventListener('click', function() {
-            content.classList.add('d-none');
+            display.classList.add('d-none');
             editBtn.classList.add('d-none');
             form.classList.remove('d-none');
             if (!host._editorBox) {
@@ -435,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         form.querySelector('.step-edit-cancel').addEventListener('click', function() {
             form.classList.add('d-none');
-            content.classList.remove('d-none');
+            display.classList.remove('d-none');
             editBtn.classList.remove('d-none');
         });
 
