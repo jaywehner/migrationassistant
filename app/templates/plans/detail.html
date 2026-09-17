@@ -96,6 +96,7 @@
                 <span>{{ tab.name }}</span>
                 {% if role.value in ('owner', 'admin', 'contributor') %}
                 <span class="ms-1 tab-actions">
+                    {% if copy_targets %}<i class="bi bi-copy small text-muted tab-copy-btn" data-tab-id="{{ tab.id }}" data-tab-name="{{ tab.name }}" title="Copy to another plan"></i>{% endif %}
                     <i class="bi bi-pencil small text-muted tab-rename-btn" data-tab-id="{{ tab.id }}" data-tab-name="{{ tab.name }}" title="Rename"></i>
                     <i class="bi bi-x small text-muted tab-delete-btn" data-tab-id="{{ tab.id }}" title="Delete"></i>
                 </span>
@@ -123,6 +124,50 @@
     </div>
     {% endif %}
 </div>
+
+{% if copy_targets %}
+<div class="modal fade" id="copyProcessModal" tabindex="-1" aria-labelledby="copyProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="copy-process-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="copyProcessModalLabel">Copy Process</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Copy <strong id="copy-process-name"></strong> and all of its tasks and steps.</p>
+                    <div class="mb-3">
+                        <label for="target_plan_id" class="form-label">Target Plan</label>
+                        <select class="form-select" id="target_plan_id" name="target_plan_id" required>
+                            {% for target in copy_targets %}
+                            <option value="{{ target.id }}">{{ target.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2 fw-medium">If a process with this name already exists:</div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="conflict_action" id="copy_rename" value="rename" checked>
+                        <label class="form-check-label" for="copy_rename">Copy with a new name</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="conflict_action" id="copy_replace" value="replace">
+                        <label class="form-check-label" for="copy_replace">Replace the existing process</label>
+                    </div>
+                    <div id="copy-new-name-group">
+                        <label for="copy_new_name" class="form-label">New Process Name</label>
+                        <input type="text" class="form-control" id="copy_new_name" name="new_name" maxlength="200">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Copy Process</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Add Tab Modal -->
 <div class="modal fade" id="addTabModal" tabindex="-1">
@@ -173,6 +218,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({ order: order })
                 });
+            }
+        });
+    }
+
+    document.querySelectorAll('.tab-copy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const form = document.getElementById('copy-process-form');
+            const newName = document.getElementById('copy_new_name');
+            form.action = '/plans/{{ plan.id }}/tabs/' + this.dataset.tabId + '/copy';
+            document.getElementById('copy-process-name').textContent = this.dataset.tabName;
+            newName.value = this.dataset.tabName + ' Copy';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('copyProcessModal')).show();
+        });
+    });
+
+    document.querySelectorAll('input[name="conflict_action"]').forEach(input => {
+        input.addEventListener('change', function() {
+            document.getElementById('copy-new-name-group').classList.toggle('d-none', this.value === 'replace');
+        });
+    });
+
+    const copyForm = document.getElementById('copy-process-form');
+    if (copyForm) {
+        copyForm.addEventListener('submit', function(e) {
+            if (document.getElementById('copy_replace').checked && !confirm('Replace the matching process and all of its tasks?')) {
+                e.preventDefault();
             }
         });
     }

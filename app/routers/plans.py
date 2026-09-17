@@ -97,6 +97,12 @@ async def plan_detail(
     csrf_token = generate_csrf_token(request)
     # Sort tabs by sort_order
     tabs = sorted(plan.tabs, key=lambda t: t.sort_order)
+    copy_targets = []
+    for target_plan in await get_user_plans(db, user.id):
+        if target_plan.id != plan_id:
+            target_role = await get_user_role_in_plan(db, target_plan.id, user.id)
+            if target_role and can_edit_plan(target_role):
+                copy_targets.append(target_plan)
     return templates.TemplateResponse("plans/detail.html", {
         "request": request,
         "current_user": user,
@@ -104,6 +110,7 @@ async def plan_detail(
         "plan": plan,
         "tabs": tabs,
         "role": role,
+        "copy_targets": copy_targets,
     })
 
 
