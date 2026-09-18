@@ -1,4 +1,5 @@
 import uuid
+from html import escape
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy import select, func
@@ -15,7 +16,7 @@ from app.models.plan import PlanRole, MigrationPlan
 from app.services.plan_service import get_user_role_in_plan, get_plan_by_id
 from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password, validate_email_address
 from app.services.email_service import send_new_account_email
-from app.services.email_service import send_email
+from app.services.email_service import build_email_layout
 
 router = APIRouter(tags=["admin"])
 
@@ -353,18 +354,10 @@ async def admin_settings_test_email(
     message["To"] = test_email_to
     message["Subject"] = "Email Configuration Test"
     
-    html = f"""
-    <h2>Email Configuration Test</h2>
-    <p>This is a test email to verify your SMTP settings are working correctly.</p>
-    <p>If you received this email, your configuration is valid!</p>
-    <p>Settings used:</p>
-    <ul>
-        <li>Host: {smtp_host}</li>
-        <li>Port: {smtp_port}</li>
-        <li>TLS: {smtp_use_tls}</li>
-        <li>From: {smtp_from_email}</li>
-    </ul>
-    """
+    html = build_email_layout(
+        "Email configuration successful",
+        f"<p style=\"margin:0 0 14px;\">Your Migration Assistant SMTP configuration is working correctly.</p><div style=\"padding:16px 18px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc;\"><div><strong>Host:</strong> {escape(smtp_host)}</div><div><strong>Port:</strong> {smtp_port}</div><div><strong>TLS:</strong> {escape(smtp_use_tls)}</div><div><strong>From:</strong> {escape(smtp_from_email)}</div></div>",
+    )
     message.attach(MIMEText(html, "html"))
     
     try:

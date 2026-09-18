@@ -1,18 +1,77 @@
 {% extends "base.html" %}
-{% block title %}Login - Migration Platform{% endblock %}
+{% block title %}Sign In - Migration Assistant{% endblock %}
 {% block auth_content %}
-<div class="row justify-content-center align-items-center min-vh-100">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <div class="text-center mb-4">
-                    <i class="bi bi-arrow-left-right fs-1 text-primary"></i>
-                    <h4 class="mt-2">Welcome Back</h4>
-                    <p class="text-muted small">Sign in to your account</p>
+<div class="auth-login-shell row g-0 min-vh-100">
+    <section class="auth-login-hero col-12 col-lg-7 d-flex align-items-center">
+        <div class="auth-login-hero-content">
+            <div class="auth-login-brand mb-5">
+                <div class="auth-login-mark">M</div>
+                <div>
+                    <div class="auth-login-eyebrow">Migration Assistant</div>
+                    <div class="auth-login-brand-subtitle">Plan. Coordinate. Deliver.</div>
+                </div>
+            </div>
+
+            <h1 class="auth-login-title">Infrastructure migrations, organized from start to finish.</h1>
+            <p class="auth-login-lead">
+                Bring your team, processes, tasks, and technical runbooks together in one secure workspace built for successful migrations.
+            </p>
+
+            <div class="row g-4 auth-login-features">
+                <div class="col-12 col-md-6">
+                    <div class="auth-login-feature">
+                        <span class="auth-login-feature-icon"><i class="bi bi-diagram-3"></i></span>
+                        <div>
+                            <div class="fw-semibold">Structure every migration</div>
+                            <div class="small">Organize work into reusable processes, tasks, and detailed steps.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="auth-login-feature">
+                        <span class="auth-login-feature-icon"><i class="bi bi-people"></i></span>
+                        <div>
+                            <div class="fw-semibold">Collaborate as a team</div>
+                            <div class="small">Invite contributors, assign owners, and keep everyone aligned.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="auth-login-feature">
+                        <span class="auth-login-feature-icon"><i class="bi bi-check2-circle"></i></span>
+                        <div>
+                            <div class="fw-semibold">Track progress clearly</div>
+                            <div class="small">Follow task status, completion, priorities, and due dates.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="auth-login-feature">
+                        <span class="auth-login-feature-icon"><i class="bi bi-shield-check"></i></span>
+                        <div>
+                            <div class="fw-semibold">Work with confidence</div>
+                            <div class="small">Protect access with verification, role controls, MFA, and audit history.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="auth-login-panel col-12 col-lg-5 d-flex align-items-center justify-content-center">
+        <div class="auth-login-card card w-100">
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="auth-login-mobile-brand mb-4">
+                        <div class="auth-login-mark">M</div>
+                        <span class="fw-bold">Migration Assistant</span>
+                    </div>
+                    <h2 class="auth-login-form-title">Welcome back</h2>
+                    <p class="auth-login-form-subtitle mb-0">Sign in to continue to your migration workspace.</p>
                 </div>
 
                 {% if errors %}
-                <div class="alert alert-danger py-2">
+                <div class="alert alert-danger py-2" role="alert">
                     {% for error in errors %}
                     <small>{{ error }}</small>{% if not loop.last %}<br>{% endif %}
                     {% endfor %}
@@ -22,24 +81,26 @@
                 <form method="post" action="/auth/login">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ email|default('', true) }}" required autofocus>
+                        <label for="email" class="form-label small fw-semibold">Email address</label>
+                        <input type="email" class="form-control auth-login-input" id="email" name="email"
+                               value="{{ email|default('', true) }}" placeholder="you@example.com"
+                               autocomplete="email" required autofocus>
                     </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label for="password" class="form-label small fw-semibold">Password</label>
+                            <a href="/auth/forgot-password" class="auth-login-link small text-decoration-none">Forgot password?</a>
+                        </div>
+                        <input type="password" class="form-control auth-login-input" id="password" name="password"
+                               placeholder="Enter your password" autocomplete="current-password" required>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <a href="/auth/forgot-password" class="small text-decoration-none">Forgot password?</a>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Sign In</button>
+                    <button type="submit" class="btn auth-login-primary w-100 rounded-pill py-2 mt-4">Sign in</button>
                 </form>
 
-                <div class="text-center mt-3">
-                    <small class="text-muted">Don't have an account? <a href="/auth/register">Sign up</a></small>
-                </div>
+                <div class="auth-login-divider"><span>New to Migration Assistant?</span></div>
+                <a href="/auth/register" class="btn auth-login-secondary w-100 rounded-pill py-2">Create an account</a>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}
