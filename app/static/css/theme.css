@@ -23,7 +23,7 @@
     --cpc-radius: 12px;
     --cpc-auth-radius: 22px;
     --cpc-shadow: 0 10px 28px rgba(13, 27, 42, 0.08);
-    --cpc-shadow-lg: 0 24px 70px rgba(3, 12, 25, 0.28);
+    --cpc-shadow-lg: 0 18px 44px rgba(3, 12, 25, 0.18);
 
     /* Legacy aliases for existing components */
     --primary-color: var(--cpc-gold);
@@ -762,6 +762,26 @@ body {
     height: 1px;
     background: #e5e7eb;
     content: "";
+}
+
+.auth-login-links {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cpc-border);
+    text-align: center;
+}
+
+.auth-login-links a {
+    display: inline-block;
+    margin: 0.25rem 0.5rem;
+    color: var(--cpc-muted);
+    font-size: 0.75rem;
+    text-decoration: none;
+}
+
+.auth-login-links a:hover {
+    color: var(--cpc-gold);
+    text-decoration: underline;
 }
 
 .auth-login-mobile-brand {

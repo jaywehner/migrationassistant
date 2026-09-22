@@ -82,19 +82,18 @@
                     <input type="email" class="form-control auth-login-input" id="email" name="email"
                            value="{{ email|default('', true) }}" autocomplete="username" required autofocus>
                 </div>
-                <div class="mb-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label for="password" class="form-label">Password</label>
-                        <a href="/auth/forgot-password" class="auth-login-link text-decoration-none">Forgot your password?</a>
-                    </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
                     <input type="password" class="form-control auth-login-input" id="password" name="password"
                            autocomplete="current-password" required>
                 </div>
-                <button type="submit" class="btn auth-login-primary mt-3">Sign in</button>
+                <button type="submit" class="btn auth-login-primary">Sign in</button>
             </form>
 
-            <div class="auth-login-divider"><span>New to Migration Assistant?</span></div>
-            <a href="/auth/register" class="btn auth-login-secondary">Create an account</a>
+            <div class="auth-login-links">
+                <a href="/auth/forgot-password">Forgot your password?</a>
+                <a href="/auth/register">Create an account</a>
+            </div>
         </div>
     </section>
 </main>
