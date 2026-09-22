@@ -1,100 +1,120 @@
 {% extends "base.html" %}
 {% block title %}Sign in - Migration Assistant{% endblock %}
 {% block auth_content %}
-<main class="auth-login-shell">
-    <section class="auth-login-hero">
-        <div class="auth-login-hero-content">
-            <div class="auth-login-brand">
-                <div class="auth-login-mark">M</div>
-                <div>
-                    <div class="auth-login-eyebrow">Cobalt Prairie</div>
-                    <div class="auth-login-brand-subtitle">Consulting</div>
+<div class="container-fluid p-0">
+    <div class="row g-0 min-vh-100 w-100 m-0">
+        <div class="col-12 col-lg-7 d-flex flex-column justify-content-center hero-gradient p-4 p-lg-5 p-xl-6">
+            <div class="mx-auto" style="max-width: 680px;">
+                <div class="mb-5">
+                    <div class="d-flex align-items-center gap-3 mb-1">
+                        <div>
+                            <div class="text-uppercase small fw-semibold tracking-widest text-gold">Cobalt Prairie</div>
+                            <div class="fs-5 fw-semibold">Consulting</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <h1 class="auth-login-title">Migration Assistant</h1>
-            <p class="auth-login-lead">
-                Plan, coordinate, and deliver infrastructure migrations with your team. Organize work into processes, tasks, and technical steps; track progress; and keep everyone aligned in one secure workspace.
-            </p>
+                <h1 class="display-5 fw-bold lh-1 mb-4">Migration Assistant</h1>
 
-            <div class="auth-login-features">
-                <div class="auth-login-feature">
-                    <span class="auth-login-feature-icon">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="6" rx="1"/><rect x="14" y="14" width="7" height="6" rx="1"/><path d="M10 7h3a3 3 0 0 1 3 3v4M14 17h-3a3 3 0 0 1-3-3v-4"/></svg>
-                    </span>
-                    <div>
-                        <strong>Structure every migration</strong>
-                        <p class="small">Organize work into reusable processes, tasks, and detailed steps.</p>
+                <p class="lead text-slate-300 mb-5">
+                    Plan, coordinate, and deliver infrastructure migrations with your team. Organize work into
+                    reusable processes, tasks, and technical steps; track progress; and keep everyone aligned in
+                    one secure workspace.
+                </p>
+
+                <div class="row g-4">
+                    <div class="col-12 col-md-6 d-flex align-items-start gap-3">
+                        <div class="feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="7" height="6" rx="1"/><rect x="14" y="14" width="7" height="6" rx="1"/><path d="M10 7h3a3 3 0 0 1 3 3v4M14 17h-3a3 3 0 0 1-3-3v-4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">Structure every migration</div>
+                            <div class="small text-slate-400">Organize work into reusable processes, tasks, and detailed steps.</div>
+                        </div>
                     </div>
-                </div>
-                <div class="auth-login-feature">
-                    <span class="auth-login-feature-icon">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 20"/></svg>
-                    </span>
-                    <div>
-                        <strong>Collaborate as a team</strong>
-                        <p class="small">Invite contributors, assign owners, and keep everyone aligned.</p>
+
+                    <div class="col-12 col-md-6 d-flex align-items-start gap-3">
+                        <div class="feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 20"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">Collaborate as a team</div>
+                            <div class="small text-slate-400">Invite contributors, assign owners, and keep everyone aligned.</div>
+                        </div>
                     </div>
-                </div>
-                <div class="auth-login-feature">
-                    <span class="auth-login-feature-icon">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-                    </span>
-                    <div>
-                        <strong>Track progress clearly</strong>
-                        <p class="small">Follow task status, completion, priorities, and due dates.</p>
+
+                    <div class="col-12 col-md-6 d-flex align-items-start gap-3">
+                        <div class="feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">Track progress clearly</div>
+                            <div class="small text-slate-400">Follow task status, completion, priorities, and due dates.</div>
+                        </div>
                     </div>
-                </div>
-                <div class="auth-login-feature">
-                    <span class="auth-login-feature-icon">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
-                    </span>
-                    <div>
-                        <strong>Work with confidence</strong>
-                        <p class="small">Protect access with verification, role controls, MFA, and audit history.</p>
+
+                    <div class="col-12 col-md-6 d-flex align-items-start gap-3">
+                        <div class="feature-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">Work with confidence</div>
+                            <div class="small text-slate-400">Verification, role controls, MFA, and a full audit history.</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
 
-    <section class="auth-login-panel">
-        <div class="auth-login-card">
-            <div class="auth-login-mobile-brand mb-4">
-                <div class="auth-login-mark">M</div>
-                <span class="fw-bold">Migration Assistant</span>
-            </div>
-            <h2 class="auth-login-form-title">Welcome back</h2>
-            <p class="auth-login-form-subtitle">Sign in to continue to Migration Assistant.</p>
+        <div class="col-12 col-lg-5 d-flex align-items-center justify-content-center p-4 p-lg-5" style="background: #f5f6f7;">
+            <div class="card border-0 shadow-soft w-100 rounded-4xl" style="max-width: 420px;">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="mb-4">
+                        <div class="h4 fw-bold" style="color: #0d1b2a;">Welcome back</div>
+                        <div class="small" style="color: #6b7280;">Sign in to manage your migration plans.</div>
+                    </div>
 
-            {% if errors %}
-            <div class="auth-login-error" role="alert">
-                {% for error in errors %}
-                <div>{{ error }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
+                    {% if errors %}
+                    <div class="alert alert-danger py-2" role="alert">
+                        {% for error in errors %}
+                        <small>{{ error }}</small>{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-            <form method="post" action="/auth/login">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control auth-login-input" id="email" name="email"
-                           value="{{ email|default('', true) }}" autocomplete="username" required autofocus>
+                    <form method="post" action="/auth/login">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="mb-3">
+                            <label for="email" class="form-label small fw-semibold" style="color: #0d1b2a;">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ email|default('', true) }}" autocomplete="username"
+                                   placeholder="Enter your email" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label small fw-semibold" style="color: #0d1b2a;">Password</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   autocomplete="current-password" placeholder="Enter your password" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-gold rounded-pill py-2">Sign in</button>
+                            <a href="/auth/register" class="btn btn-outline-gold rounded-pill py-2">Create account</a>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="/auth/forgot-password" class="small text-decoration-none" style="color: #9a713d;">Forgot your password?</a>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control auth-login-input" id="password" name="password"
-                           autocomplete="current-password" required>
-                </div>
-                <button type="submit" class="btn auth-login-primary">Sign in</button>
-            </form>
-
-            <div class="auth-login-links">
-                <a href="/auth/forgot-password">Forgot your password?</a>
-                <a href="/auth/register">Create an account</a>
             </div>
         </div>
-    </section>
-</main>
+    </div>
+</div>
 {% endblock %}

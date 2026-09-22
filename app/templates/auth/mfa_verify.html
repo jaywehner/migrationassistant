@@ -1,32 +1,37 @@
 {% extends "base.html" %}
 {% block title %}MFA Verification - Migration Assistant{% endblock %}
 {% block auth_content %}
-<div class="auth-login-shell" style="grid-template-columns: 1fr;">
-    <section class="auth-login-panel">
-        <div class="auth-login-card">
-            <div class="text-center mb-4">
-                <div class="auth-login-mark mx-auto mb-3">M</div>
-                <h2 class="auth-login-form-title">Two-Factor Authentication</h2>
-                <p class="auth-login-form-subtitle mb-0">Enter the code from your authenticator app.</p>
-            </div>
+<div class="container-fluid p-0">
+    <div class="row g-0 min-vh-100 w-100 m-0">
+        <div class="col-12 d-flex align-items-center justify-content-center p-4" style="background: #f5f6f7;">
+            <div class="card border-0 shadow-soft w-100 rounded-4xl" style="max-width: 420px;">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="mb-4">
+                        <div class="h4 fw-bold" style="color: #0d1b2a;">Two-Factor Authentication</div>
+                        <div class="small" style="color: #6b7280;">Enter the code from your authenticator app.</div>
+                    </div>
 
-            {% if errors %}
-            <div class="auth-login-error" role="alert">
-                {% for error in errors %}
-                <div>{{ error }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
+                    {% if errors %}
+                    <div class="alert alert-danger py-2" role="alert">
+                        {% for error in errors %}
+                        <small>{{ error }}</small>{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-            <form method="post" action="/auth/mfa-verify">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="mb-3">
-                    <label for="code" class="form-label">Authentication Code</label>
-                    <input type="text" class="form-control auth-login-input text-center fs-4 letter-spacing-2" id="code" name="code" maxlength="6" pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
+                    <form method="post" action="/auth/mfa-verify">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="mb-3">
+                            <label for="code" class="form-label small fw-semibold" style="color: #0d1b2a;">Authentication Code</label>
+                            <input type="text" class="form-control text-center fs-4 letter-spacing-2" id="code" name="code" maxlength="6" pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-gold rounded-pill py-2">Verify</button>
+                        </div>
+                    </form>
                 </div>
-                <button type="submit" class="btn auth-login-primary">Verify</button>
-            </form>
+            </div>
         </div>
-    </section>
+    </div>
 </div>
 {% endblock %}
