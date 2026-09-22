@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>APPLICATION NAME</title>
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body>
+    <header class="cpc-topbar">
+      <div class="cpc-brand">APPLICATION NAME</div>
+      <div>Current section or document</div>
+      <div class="cpc-topbar-spacer"></div>
+      <button class="cpc-btn-secondary" type="button">Light/Dark</button>
+      <button class="cpc-btn-secondary" type="button">Account</button>
+      <button class="cpc-btn-secondary" type="button">Logout</button>
+    </header>
+    <div style="display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 58px);">
+      <aside style="padding:18px;background:#fff;border-right:1px solid var(--cpc-border);">
+        <div class="cpc-section-label">Navigation</div>
+        <nav style="display:grid;gap:8px;margin-top:12px;">
+          <a href="#">Primary area</a>
+          <a href="#">Secondary area</a>
+          <a href="#">Settings</a>
+        </nav>
+      </aside>
+      <main style="padding:24px;">
+        <section class="cpc-panel" style="padding:20px;">
+          <div class="cpc-section-label">Section label</div>
+          <h1>Page heading</h1>
+          <p>Replace this static example with the application's own components and behavior.</p>
+          <button class="cpc-btn-primary" style="width:auto;" type="button">Primary action</button>
+          <button class="cpc-btn-secondary" type="button">Secondary action</button>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

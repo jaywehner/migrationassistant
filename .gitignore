@@ -22,7 +22,6 @@ env/
 # Environment
 .env
 .setup_complete
-CPC_Theme/
 
 # Uploads
 uploads/
