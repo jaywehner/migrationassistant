@@ -810,15 +810,25 @@ body {
 }
 
 @media (max-width: 575.98px) {
+    .auth-login-shell {
+        display: block;
+    }
+
     .auth-login-hero {
         display: none !important;
     }
 
     .auth-login-panel {
+        display: block;
         min-height: 100vh;
+        padding: 0;
+        background: var(--cpc-surface);
     }
 
     .auth-login-card {
+        width: 100%;
+        max-width: none;
+        border-radius: 0;
         box-shadow: none;
     }
 
@@ -828,5 +838,26 @@ body {
 
     .auth-login-mobile-brand {
         display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-login-form-title {
+        font-size: 1.5rem;
+    }
+
+    .auth-login-form-subtitle {
+        font-size: 0.8125rem;
+    }
+
+    .auth-login-input {
+        min-height: 44px;
+    }
+
+    .auth-login-primary,
+    .auth-login-secondary {
+        min-height: 44px;
+        padding: 0.625rem 1rem;
     }
 }
