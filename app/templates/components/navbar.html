@@ -1,31 +1,33 @@
-<nav class="navbar navbar-expand-lg app-navbar border-bottom px-4">
-    <div class="container-fluid">
-        <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" id="sidebar-toggle">
-            <i class="bi bi-list"></i>
+<nav class="navbar navbar-expand app-navbar px-4">
+    <a href="/plans" class="app-brand text-decoration-none me-3">
+        <i class="bi bi-arrow-repeat me-2"></i>Migration Assistant
+    </a>
+
+    <button class="btn btn-sm btn-outline-secondary d-lg-none me-2" id="sidebar-toggle" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <nav aria-label="breadcrumb" class="flex-grow-1 d-none d-md-block">
+        <ol class="breadcrumb mb-0">
+            {% block breadcrumb %}
+            <li class="breadcrumb-item active">Dashboard</li>
+            {% endblock %}
+        </ol>
+    </nav>
+
+    <div class="dropdown ms-auto">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-1"></i> {{ current_user.display_name }}
         </button>
-
-        <nav aria-label="breadcrumb" class="flex-grow-1">
-            <ol class="breadcrumb mb-0">
-                {% block breadcrumb %}
-                <li class="breadcrumb-item active">Dashboard</li>
-                {% endblock %}
-            </ol>
-        </nav>
-
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-person-circle"></i> {{ current_user.display_name }}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                    <form method="post" action="/auth/logout">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button class="dropdown-item text-danger" type="submit">
-                            <i class="bi bi-box-arrow-right me-2"></i>Logout
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <form method="post" action="/auth/logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="dropdown-item text-danger" type="submit">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </button>
+                </form>
+            </li>
+        </ul>
     </div>
 </nav>

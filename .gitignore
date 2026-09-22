@@ -22,7 +22,7 @@ env/
 # Environment
 .env
 .setup_complete
-FormatReadOnly/
+CPC_Theme/
 
 # Uploads
 uploads/
