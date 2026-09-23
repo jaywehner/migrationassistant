@@ -331,6 +331,8 @@
     display: flex;
     align-items: flex-start;
     gap: 0.25rem;
+    min-width: 0;
+    overflow: hidden;
 }
 .step-resizer {
     width: 8px;
@@ -361,6 +363,16 @@
 .step-code {
     width: 100%;
     min-width: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: hidden;
+}
+.step-content-wrap {
+    min-width: 0;
+}
+.step-content {
+    min-width: 0;
+    overflow-wrap: break-word;
 }
 .step-editor-box {
     min-height: 42px;
