@@ -11,7 +11,7 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
         <!-- Details -->
         <div class="card mb-4">
             <div class="card-header bg-transparent">
@@ -94,12 +94,13 @@
                         <input type="checkbox" class="form-check-input mt-1" {% if step.is_done %}checked{% endif %} disabled>
                         {% endif %}
                         <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-copy-btn" title="Copy step description"><i class="bi bi-clipboard"></i></button>
-                        <div class="flex-grow-1">
-                            <div class="row g-2 step-display">
-                                <div class="col-md-7">
+                        <div class="flex-grow-1 step-content-wrap">
+                            <div class="step-panels step-display">
+                                <div class="step-desc-panel">
                                     <div class="step-content small {% if step.is_done %}step-done{% endif %}">{{ step.title|safe }}</div>
                                 </div>
-                                <div class="col-md-5 d-flex align-items-start gap-1">
+                                <div class="step-resizer" role="separator" aria-label="Resize description and code" title="Drag to resize"></div>
+                                <div class="step-code-panel">
                                     <pre class="step-code small flex-grow-1 mb-0">{{ step.code }}</pre>
                                     <button type="button" class="btn btn-sm btn-link text-muted p-0 step-code-copy-btn" title="Copy code"><i class="bi bi-clipboard"></i></button>
                                 </div>
@@ -108,9 +109,10 @@
                             <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/edit" class="step-edit-form d-none">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="title" class="step-html-input">
-                                <div class="row g-2">
-                                    <div class="col-md-7"><div class="step-edit-host"></div></div>
-                                    <div class="col-md-5"><textarea class="form-control form-control-sm font-monospace" name="code" rows="4" placeholder="Code">{{ step.code }}</textarea></div>
+                                <div class="step-panels">
+                                    <div class="step-desc-panel"><div class="step-edit-host"></div></div>
+                                    <div class="step-resizer" role="separator" aria-label="Resize description and code" title="Drag to resize"></div>
+                                    <div class="step-code-panel"><textarea class="form-control form-control-sm font-monospace" name="code" rows="6" placeholder="Code">{{ step.code }}</textarea></div>
                                 </div>
                                 <div class="mt-2 d-flex gap-2">
                                     <button type="submit" class="btn btn-sm btn-primary">Save</button>
@@ -138,14 +140,15 @@
                 <form method="post" action="/tasks/{{ task.id }}/steps/new" class="mt-3" id="new-step-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="title" class="step-html-input">
-                    <div class="row g-2">
-                        <div class="col-md-7">
+                    <div class="step-panels">
+                        <div class="step-desc-panel">
                             <label class="form-label small">Step Description</label>
                             <div id="new-step-editor-host"></div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="step-resizer" role="separator" aria-label="Resize description and code" title="Drag to resize"></div>
+                        <div class="step-code-panel">
                             <label for="new-step-code" class="form-label small">Code</label>
-                            <textarea class="form-control form-control-sm font-monospace" id="new-step-code" name="code" rows="4" placeholder="Optional code"></textarea>
+                            <textarea class="form-control form-control-sm font-monospace" id="new-step-code" name="code" rows="6" placeholder="Optional code"></textarea>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-primary mt-2">Add Step</button>
@@ -225,7 +228,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-3">
         <!-- Status & Assignment -->
         <div class="card mb-4">
             <div class="card-header bg-transparent">
@@ -308,6 +311,57 @@
 
 {% block extra_scripts %}
 <style>
+/* Resizable description/code panels inside step items and forms */
+.step-panels {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+}
+.step-desc-panel,
+.step-code-panel {
+    min-width: 140px;
+    overflow-wrap: break-word;
+}
+.step-desc-panel {
+    flex: 1 1 55%;
+}
+.step-code-panel {
+    flex: 1 1 45%;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+.step-resizer {
+    width: 8px;
+    margin: 0 2px;
+    background: transparent;
+    cursor: col-resize;
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+.step-resizer:hover,
+.step-resizer.resizing {
+    background: #c89b5e;
+}
+.step-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 22px;
+    background: currentColor;
+    opacity: 0.25;
+    border-radius: 1px;
+}
+.step-code {
+    width: 100%;
+    min-width: 0;
+}
 .step-editor-box {
     min-height: 42px;
     font-size: 0.875rem;
@@ -493,6 +547,43 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!submitStepForm(form, host._editorBox)) e.preventDefault();
         });
     });
+
+    // Resizable step description/code panels
+    function initResizers() {
+        document.querySelectorAll('.step-resizer').forEach(function(resizer) {
+            resizer.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                const left = resizer.previousElementSibling;
+                const right = resizer.nextElementSibling;
+                if (!left || !right) return;
+                const container = left.parentElement;
+                const rect = container.getBoundingClientRect();
+                const resizerWidth = resizer.offsetWidth;
+                const minPanel = 120;
+
+                function onMove(ev) {
+                    let leftW = ev.clientX - rect.left;
+                    const maxLeft = rect.width - resizerWidth - minPanel;
+                    if (leftW < minPanel) leftW = minPanel;
+                    if (leftW > maxLeft) leftW = maxLeft;
+                    const rightW = rect.width - resizerWidth - leftW;
+                    left.style.flex = '0 0 ' + leftW + 'px';
+                    right.style.flex = '0 0 ' + rightW + 'px';
+                }
+
+                function onUp() {
+                    resizer.classList.remove('resizing');
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                }
+
+                resizer.classList.add('resizing');
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        });
+    }
+    initResizers();
 
     // Step reorder via SortableJS
     const list = document.getElementById('steps-list');
