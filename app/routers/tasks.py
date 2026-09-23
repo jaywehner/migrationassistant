@@ -10,11 +10,14 @@ from app.middleware.auth import require_auth
 from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User
 from app.models.task import TaskStatus, TaskPriority, VALID_TRANSITIONS
+from app.models.tab import ProcessTab
+from sqlalchemy import select
 from app.services.plan_service import get_user_role_in_plan, get_plan_members, can_create_tasks
 from app.services.task_service import (
     get_task_by_id,
     get_plan_id_for_task,
     create_task,
+    copy_task,
     change_task_status,
     assign_task,
     update_task,
@@ -243,6 +246,41 @@ async def delete_task(
     await db.delete(task)
     await db.commit()
     return RedirectResponse(url=f"/plans/{plan_id}?tab={tab_id}", status_code=303)
+
+
+@router.post("/tasks/{task_id}/copy")
+async def copy_task_route(
+    request: Request,
+    task_id: uuid.UUID,
+    target_tab_id: str = Form(...),
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    task = await get_task_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+
+    plan_id = await get_plan_id_for_task(db, task_id)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role or not can_create_tasks(role):
+        raise HTTPException(status_code=403)
+
+    try:
+        target_tab_uuid = uuid.UUID(target_tab_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid target tab")
+
+    tab_result = await db.execute(
+        select(ProcessTab).where(ProcessTab.id == target_tab_uuid, ProcessTab.plan_id == plan_id)
+    )
+    target_tab = tab_result.scalar_one_or_none()
+    if not target_tab:
+        raise HTTPException(status_code=422, detail="Target tab must be in the same plan")
+
+    await copy_task(db, task, target_tab_uuid, user.id, plan_id)
+    await db.commit()
+    return RedirectResponse(url=f"/plans/{plan_id}?tab={target_tab_uuid}&success=Task+copied", status_code=303)
 
 
 @router.post("/tasks/{task_id}/steps/new")

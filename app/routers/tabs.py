@@ -248,6 +248,11 @@ async def tab_tasks(
     members = await get_plan_members(db, plan_id)
     csrf_token = generate_csrf_token(request)
 
+    tabs_result = await db.execute(
+        select(ProcessTab).where(ProcessTab.plan_id == plan_id).order_by(ProcessTab.position)
+    )
+    tabs = tabs_result.scalars().all()
+
     return templates.TemplateResponse("tasks/list.html", {
         "request": request,
         "current_user": user,
@@ -258,4 +263,5 @@ async def tab_tasks(
         "role": role,
         "can_create": can_create_tasks(role),
         "members": members,
+        "tabs": tabs,
     })

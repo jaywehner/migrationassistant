@@ -81,6 +81,13 @@
                 </td>
                 {% if can_create %}
                 <td class="text-end" onclick="event.stopPropagation()">
+                    <a href="/tasks/{{ task.id }}" class="btn btn-sm btn-outline-secondary me-1" title="Edit task">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-1 task-copy-btn"
+                            data-task-id="{{ task.id }}" data-task-title="{{ task.title }}" title="Copy task">
+                        <i class="bi bi-copy"></i>
+                    </button>
                     <form method="post" action="/tasks/{{ task.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this task? This cannot be undone.')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete task">
@@ -98,6 +105,39 @@
 <div class="text-center py-4 text-muted">
     <i class="bi bi-clipboard-check fs-3"></i>
     <p class="mt-2">No tasks in this tab yet.</p>
+</div>
+{% endif %}
+
+<!-- Copy Task Modal -->
+{% if can_create %}
+<div class="modal fade" id="copyTaskModal" tabindex="-1" aria-labelledby="copyTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="copy-task-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="copyTaskModalLabel">Copy Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Copy <strong id="copy-task-title"></strong> and all of its steps.</p>
+                    <div class="mb-3">
+                        <label for="target_tab_id" class="form-label">Target Process</label>
+                        <select class="form-select" id="target_tab_id" name="target_tab_id" required>
+                            <option value="">Select a process...</option>
+                            {% for t in tabs %}
+                            <option value="{{ t.id }}">{{ t.name }}{% if t.id == tab.id %} (current){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Copy Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -158,6 +198,17 @@
 {% if can_create %}
 <script>
 (function() {
+    // Copy task modal
+    document.querySelectorAll('.task-copy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const form = document.getElementById('copy-task-form');
+            form.action = '/tasks/' + this.dataset.taskId + '/copy';
+            document.getElementById('copy-task-title').textContent = this.dataset.taskTitle;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('copyTaskModal')).show();
+        });
+    });
+
     const tbody = document.getElementById('task-list-body');
     if (!tbody || typeof Sortable === 'undefined') return;
     Sortable.create(tbody, {

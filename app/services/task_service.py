@@ -80,6 +80,56 @@ async def create_task(
     return task
 
 
+async def copy_task(
+    db: AsyncSession,
+    task: Task,
+    target_tab_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    plan_id: uuid.UUID,
+) -> Task:
+    """Create a duplicate of a task (including its steps) in a target tab."""
+    result = await db.execute(
+        select(func.max(Task.position)).where(Task.tab_id == target_tab_id)
+    )
+    next_position = (result.scalar() or 0) + 1
+
+    new_task = Task(
+        tab_id=target_tab_id,
+        title=task.title,
+        description=task.description,
+        status=task.status,
+        percent_complete=task.percent_complete,
+        priority=task.priority,
+        due_date=task.due_date,
+        assigned_to=task.assigned_to,
+        created_by=actor_id,
+        position=next_position,
+    )
+    db.add(new_task)
+    await db.flush()
+
+    for step in sorted(task.steps, key=lambda s: s.position):
+        new_step = TaskStep(
+            task_id=new_task.id,
+            title=step.title,
+            code=step.code,
+            is_done=step.is_done,
+            position=step.position,
+        )
+        db.add(new_step)
+
+    await log_action(
+        db, plan_id, actor_id,
+        "task", str(new_task.id), "copied",
+        new_value={
+            "source_task_id": str(task.id),
+            "source_tab_id": str(task.tab_id),
+            "target_tab_id": str(target_tab_id),
+        },
+    )
+    return new_task
+
+
 async def change_task_status(
     db: AsyncSession,
     task: Task,

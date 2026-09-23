@@ -123,7 +123,7 @@
                         </div>
                         {% if can_edit %}
                         <button type="button" class="btn btn-sm btn-link text-muted p-0 pt-1 step-edit-btn" title="Edit step"><i class="bi bi-pencil"></i></button>
-                        <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/delete" class="d-inline pt-1">
+                        <form method="post" action="/tasks/{{ task.id }}/steps/{{ step.id }}/delete" class="d-inline pt-1" onsubmit="return confirm('Delete this step? This cannot be undone.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Delete step"><i class="bi bi-x-lg"></i></button>
                         </form>
