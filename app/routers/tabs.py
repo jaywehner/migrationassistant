@@ -249,7 +249,7 @@ async def tab_tasks(
     csrf_token = generate_csrf_token(request)
 
     tabs_result = await db.execute(
-        select(ProcessTab).where(ProcessTab.plan_id == plan_id).order_by(ProcessTab.position)
+        select(ProcessTab).where(ProcessTab.plan_id == plan_id).order_by(ProcessTab.sort_order)
     )
     tabs = tabs_result.scalars().all()
 
