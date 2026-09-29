@@ -21,6 +21,11 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
             <li>
+                <a class="dropdown-item" href="/plans/subscriptions">
+                    <i class="bi bi-envelope me-2"></i>Subscriptions
+                </a>
+            </li>
+            <li>
                 <form method="post" action="/auth/logout">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button class="dropdown-item text-danger" type="submit">

@@ -21,3 +21,9 @@ class ProcessTab(Base):
     plan = relationship("MigrationPlan", back_populates="tabs")
     tasks = relationship("Task", back_populates="tab", lazy="selectin", cascade="all, delete-orphan",
                          order_by="Task.position")
+    notification_subscriptions = relationship(
+        "ProcessNotificationSubscription",
+        back_populates="tab",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )

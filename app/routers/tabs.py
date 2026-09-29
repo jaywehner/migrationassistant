@@ -2,7 +2,7 @@ import uuid
 from urllib.parse import quote
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,6 +17,7 @@ from app.models.task import Task
 from app.models.step import TaskStep
 from app.models.plan import PlanMember
 from app.services.plan_service import get_user_role_in_plan, can_edit_plan, can_create_tasks
+from app.services import notification_service
 
 router = APIRouter(tags=["tabs"])
 
@@ -220,6 +221,31 @@ async def reorder_tabs(
         )
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/plans/{plan_id}/tabs/{tab_id}/subscribe")
+async def toggle_subscription(
+    request: Request,
+    plan_id: uuid.UUID,
+    tab_id: uuid.UUID,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    role = await get_user_role_in_plan(db, plan_id, user.id)
+    if not role:
+        raise HTTPException(status_code=404)
+
+    tab_result = await db.execute(
+        select(ProcessTab).where(ProcessTab.id == tab_id, ProcessTab.plan_id == plan_id)
+    )
+    tab = tab_result.scalar_one_or_none()
+    if not tab:
+        raise HTTPException(status_code=404)
+
+    subscribed = await notification_service.toggle_subscription(db, user.id, tab_id)
+    await db.commit()
+    return JSONResponse({"subscribed": subscribed, "tab_id": str(tab_id)})
 
 
 @router.get("/plans/{plan_id}/tabs/{tab_id}/tasks", response_class=HTMLResponse)

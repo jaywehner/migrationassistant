@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Process Subscriptions</h4>
+    <a href="/plans" class="btn btn-sm btn-outline-secondary">Back to Plans</a>
+</div>
+
+<p class="text-muted small">Subscribe to a process to receive email notifications when tasks are assigned to you, updated, or completed.</p>
+
+{% if tabs %}
+    {% for plan in plans %}
+    <div class="card mb-4">
+        <div class="card-header bg-transparent">
+            <h6 class="mb-0">{{ plan.name }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                {% for tab in tabs if tab.plan_id == plan.id %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ tab.name }}</span>
+                    <form method="post" action="/plans/{{ plan.id }}/tabs/{{ tab.id }}/subscribe" class="subscription-toggle-form" data-tab-id="{{ tab.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-link text-decoration-none subscription-btn" title="Toggle notifications">
+                            {% if tab.id in subscribed_tab_ids %}
+                            <i class="bi bi-envelope-fill text-gold"></i> Subscribed
+                            {% else %}
+                            <i class="bi bi-envelope text-muted"></i> Subscribe
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-envelope fs-1"></i>
+        <p class="mt-2">You don’t have access to any plans yet.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.subscription-toggle-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = form.querySelector('.subscription-btn');
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': form.querySelector('input[name="csrf_token"]').value
+            },
+            body: new URLSearchParams(new FormData(form))
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.subscribed) {
+                btn.innerHTML = '<i class="bi bi-envelope-fill text-gold"></i> Subscribed';
+            } else {
+                btn.innerHTML = '<i class="bi bi-envelope text-muted"></i> Subscribe';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

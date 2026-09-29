@@ -96,6 +96,8 @@
                 <span>{{ tab.name }}</span>
                 {% if role.value in ('owner', 'admin', 'contributor') %}
                 <span class="ms-1 tab-actions">
+                    <i class="bi bi-envelope{% if tab.id in subscribed_tab_ids %}-fill{% endif %} small text-gold tab-subscribe-btn"
+                       data-tab-id="{{ tab.id }}" data-plan-id="{{ plan.id }}" title="Toggle notifications"></i>
                     {% if copy_targets %}<i class="bi bi-copy small text-muted tab-copy-btn" data-tab-id="{{ tab.id }}" data-tab-name="{{ tab.name }}" title="Copy to another plan"></i>{% endif %}
                     <i class="bi bi-pencil small text-muted tab-rename-btn" data-tab-id="{{ tab.id }}" data-tab-name="{{ tab.name }}" title="Rename"></i>
                     <i class="bi bi-x small text-muted tab-delete-btn" data-tab-id="{{ tab.id }}" title="Delete"></i>
@@ -201,6 +203,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-load first tab's tasks
     const activeTab = document.querySelector('#process-tabs .nav-link.active') || document.querySelector('#process-tabs .nav-link');
     if (activeTab) activeTab.click();
+
+    // Tab notification subscribe toggle
+    document.querySelectorAll('.tab-subscribe-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const tabId = this.dataset.tabId;
+            const planId = this.dataset.planId;
+            fetch('/plans/' + planId + '/tabs/' + tabId + '/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': getCSRFToken()
+                },
+                body: new URLSearchParams()
+            }).then(r => r.json()).then(data => {
+                if (data.subscribed) {
+                    this.classList.remove('bi-envelope');
+                    this.classList.add('bi-envelope-fill');
+                } else {
+                    this.classList.remove('bi-envelope-fill');
+                    this.classList.add('bi-envelope');
+                }
+            });
+        });
+    });
 
     // Tab reorder via SortableJS
     const tabList = document.getElementById('process-tabs');

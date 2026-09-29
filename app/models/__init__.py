@@ -5,6 +5,7 @@ from app.models.task import Task
 from app.models.note import TaskNote
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
+from app.models.notification import ProcessNotificationSubscription
 
 __all__ = [
     "User",

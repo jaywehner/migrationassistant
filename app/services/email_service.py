@@ -126,3 +126,125 @@ async def send_new_account_email(to_email: str, password: str, display_name: str
         login_url,
     )
     return await send_email(to_email, "Your Account Credentials - Migration Assistant", html)
+
+
+async def send_task_notification_email(
+    to_email: str,
+    subject: str,
+    title: str,
+    body_html: str,
+    task_url: str,
+) -> bool:
+    html = build_email_layout(
+        title,
+        body_html,
+        "Open Task",
+        task_url,
+    )
+    return await send_email(to_email, subject, html)
+
+
+async def send_task_assigned_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> assigned you to a task in "
+        f"<strong>{safe_process}</strong> under <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0 0 8px;\"><strong>Task:</strong> {safe_title}</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the task to view details and next steps.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"Assigned: {task_title} - Migration Assistant",
+        "You’ve been assigned a task",
+        body,
+        task_url,
+    )
+
+
+async def send_task_unassigned_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> reassigned the task "
+        f"<strong>{safe_title}</strong> in <strong>{safe_process}</strong> under <strong>{safe_plan}</strong> to another user.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">You are no longer assigned to this task.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"Unassigned: {task_title} - Migration Assistant",
+        "You’ve been unassigned from a task",
+        body,
+        task_url,
+    )
+
+
+async def send_task_completed_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> marked the task "
+        f"<strong>{safe_title}</strong> in <strong>{safe_process}</strong> under <strong>{safe_plan}</strong> as "
+        f"<strong>Closed - Complete</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the task to review the outcome.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"Completed: {task_title} - Migration Assistant",
+        "A task has been completed",
+        body,
+        task_url,
+    )
+
+
+async def send_task_updated_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> updated the task "
+        f"<strong>{safe_title}</strong> in <strong>{safe_process}</strong> under <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the task to see the latest changes.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"Updated: {task_title} - Migration Assistant",
+        "A task you’re assigned to was updated",
+        body,
+        task_url,
+    )

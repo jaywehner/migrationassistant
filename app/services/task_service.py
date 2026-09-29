@@ -7,8 +7,11 @@ from sqlalchemy.orm import selectinload
 from app.models.task import Task, TaskStatus, TaskPriority, VALID_TRANSITIONS
 from app.models.step import TaskStep
 from app.models.tab import ProcessTab
-from app.models.plan import PlanRole
+from app.models.plan import PlanRole, MigrationPlan
+from app.models.user import User
+from app.config import get_settings
 from app.services.audit_service import log_action
+from app.services import notification_service, email_service
 
 
 async def get_task_by_id(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
@@ -77,6 +80,13 @@ async def create_task(
         "task", str(task.id), "created",
         new_value={"title": title, "status": TaskStatus.new.value},
     )
+
+    if task.assigned_to and task.assigned_to != created_by:
+        await _notify_assignee(
+            db, task, plan_id, created_by,
+            email_service.send_task_assigned_email,
+        )
+
     return task
 
 
@@ -165,6 +175,13 @@ async def change_task_status(
         old_value={"status": old_status.value},
         new_value={"status": new_status.value},
     )
+
+    if new_status == TaskStatus.closed_complete:
+        await _notify_assignee(
+            db, task, plan_id, actor_id,
+            email_service.send_task_completed_email,
+        )
+
     return True, ""
 
 
@@ -175,7 +192,8 @@ async def assign_task(
     actor_id: uuid.UUID,
     plan_id: uuid.UUID,
 ) -> None:
-    old_assignee = str(task.assigned_to) if task.assigned_to else None
+    old_assignee_id = task.assigned_to
+    old_assignee = str(old_assignee_id) if old_assignee_id else None
     task.assigned_to = assignee_id
 
     await log_action(
@@ -184,6 +202,17 @@ async def assign_task(
         old_value={"assigned_to": old_assignee},
         new_value={"assigned_to": str(assignee_id) if assignee_id else None},
     )
+
+    if assignee_id and assignee_id != old_assignee_id and assignee_id != actor_id:
+        await _notify_assignee(
+            db, task, plan_id, actor_id,
+            email_service.send_task_assigned_email,
+        )
+
+    if old_assignee_id and old_assignee_id != assignee_id and old_assignee_id != actor_id:
+        await _notify_unassigned(
+            db, old_assignee_id, task, plan_id, actor_id,
+        )
 
 
 async def update_task(
@@ -211,11 +240,109 @@ async def update_task(
             old_value=changes_old,
             new_value=changes_new,
         )
+        await _notify_assignee(
+            db, task, plan_id, actor_id,
+            email_service.send_task_updated_email,
+        )
 
 
 def can_edit_task(role: PlanRole, task: Task, user_id: uuid.UUID) -> bool:
     """Check if user can edit this task based on their role."""
     return role in (PlanRole.owner, PlanRole.admin, PlanRole.contributor)
+
+
+async def _notify_assignee(
+    db: AsyncSession,
+    task: Task,
+    plan_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    send_func,
+):
+    """Send a notification email to the assigned user if they are subscribed and not the actor."""
+    if not task.assigned_to or task.assigned_to == actor_id:
+        return
+
+    subbed = await notification_service.is_subscribed(db, task.assigned_to, task.tab_id)
+    if not subbed:
+        return
+
+    result = await db.execute(select(User).where(User.id == task.assigned_to))
+    assignee = result.scalar_one_or_none()
+    if not assignee or not assignee.email:
+        return
+
+    result = await db.execute(select(User).where(User.id == actor_id))
+    actor = result.scalar_one_or_none()
+    actor_name = actor.display_name if actor else "Someone"
+
+    tab_result = await db.execute(select(ProcessTab).where(ProcessTab.id == task.tab_id))
+    tab = tab_result.scalar_one_or_none()
+    process_name = tab.name if tab else "Unknown Process"
+
+    plan_name = "Unknown Plan"
+    if tab:
+        plan_result = await db.execute(select(MigrationPlan).where(MigrationPlan.id == plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+        if plan_obj:
+            plan_name = plan_obj.name
+
+    settings = get_settings()
+    task_url = f"{settings.app_url}/tasks/{task.id}"
+    await send_func(
+        to_email=assignee.email,
+        task_title=task.title,
+        process_name=process_name,
+        plan_name=plan_name,
+        actor_name=actor_name,
+        task_url=task_url,
+    )
+
+
+async def _notify_unassigned(
+    db: AsyncSession,
+    old_assignee_id: uuid.UUID | None,
+    task: Task,
+    plan_id: uuid.UUID,
+    actor_id: uuid.UUID,
+):
+    """Notify a previous assignee that they were reassigned away from this task."""
+    if not old_assignee_id or old_assignee_id == actor_id:
+        return
+
+    subbed = await notification_service.is_subscribed(db, old_assignee_id, task.tab_id)
+    if not subbed:
+        return
+
+    result = await db.execute(select(User).where(User.id == old_assignee_id))
+    user = result.scalar_one_or_none()
+    if not user or not user.email:
+        return
+
+    result = await db.execute(select(User).where(User.id == actor_id))
+    actor = result.scalar_one_or_none()
+    actor_name = actor.display_name if actor else "Someone"
+
+    tab_result = await db.execute(select(ProcessTab).where(ProcessTab.id == task.tab_id))
+    tab = tab_result.scalar_one_or_none()
+    process_name = tab.name if tab else "Unknown Process"
+
+    plan_name = "Unknown Plan"
+    if tab:
+        plan_result = await db.execute(select(MigrationPlan).where(MigrationPlan.id == plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+        if plan_obj:
+            plan_name = plan_obj.name
+
+    settings = get_settings()
+    task_url = f"{settings.app_url}/tasks/{task.id}"
+    await email_service.send_task_unassigned_email(
+        to_email=user.email,
+        task_title=task.title,
+        process_name=process_name,
+        plan_name=plan_name,
+        actor_name=actor_name,
+        task_url=task_url,
+    )
 
 
 STEP_ALLOWED_TAGS = [

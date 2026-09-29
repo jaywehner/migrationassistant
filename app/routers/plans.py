@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -26,6 +27,7 @@ from app.services.plan_service import (
 )
 from app.services.auth_service import get_user_by_email, verify_invite_token, validate_email_address
 from app.services.email_service import send_invite_email
+from app.services import notification_service
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -79,6 +81,38 @@ async def create_plan_submit(
     return RedirectResponse(url=f"/plans/{plan.id}", status_code=303)
 
 
+@router.get("/subscriptions", response_class=HTMLResponse)
+async def subscriptions_page(
+    request: Request,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    csrf_token = generate_csrf_token(request)
+    plans = await get_user_plans(db, user.id)
+    plan_ids = [p.id for p in plans]
+
+    tabs = []
+    if plan_ids:
+        tab_result = await db.execute(
+            select(ProcessTab)
+            .where(ProcessTab.plan_id.in_(plan_ids))
+            .order_by(ProcessTab.plan_id, ProcessTab.sort_order)
+        )
+        tabs = tab_result.scalars().all()
+
+    subs = await notification_service.get_user_subscriptions(db, user.id)
+    subscribed_tab_ids = {s.tab_id for s in subs}
+
+    return templates.TemplateResponse("plans/subscriptions.html", {
+        "request": request,
+        "current_user": user,
+        "csrf_token": csrf_token,
+        "plans": plans,
+        "tabs": tabs,
+        "subscribed_tab_ids": subscribed_tab_ids,
+    })
+
+
 @router.get("/{plan_id}", response_class=HTMLResponse)
 async def plan_detail(
     request: Request,
@@ -97,6 +131,19 @@ async def plan_detail(
     csrf_token = generate_csrf_token(request)
     # Sort tabs by sort_order
     tabs = sorted(plan.tabs, key=lambda t: t.sort_order)
+
+    tab_ids = [tab.id for tab in tabs]
+    subscribed_tab_ids = set()
+    if tab_ids:
+        sub_result = await db.execute(
+            select(notification_service.ProcessNotificationSubscription.tab_id)
+            .where(
+                notification_service.ProcessNotificationSubscription.user_id == user.id,
+                notification_service.ProcessNotificationSubscription.tab_id.in_(tab_ids),
+            )
+        )
+        subscribed_tab_ids = {row[0] for row in sub_result.all()}
+
     copy_targets = []
     for target_plan in await get_user_plans(db, user.id):
         if target_plan.id != plan_id:
@@ -111,6 +158,7 @@ async def plan_detail(
         "tabs": tabs,
         "role": role,
         "copy_targets": copy_targets,
+        "subscribed_tab_ids": subscribed_tab_ids,
     })
 
 
