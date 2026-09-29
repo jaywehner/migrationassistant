@@ -95,6 +95,7 @@ async def create_task(
         await _notify_assignee(
             db, task, plan_id, created_by,
             email_service.send_task_assigned_email,
+            task_url=task_url,
         )
 
     return task
@@ -193,6 +194,7 @@ async def change_task_status(
         await _notify_assignee(
             db, task, plan_id, actor_id,
             email_service.send_task_completed_email,
+            task_url=task_url,
         )
 
     await _notify_subscribers(
@@ -230,6 +232,7 @@ async def assign_task(
         await _notify_assignee(
             db, task, plan_id, actor_id,
             email_service.send_task_assigned_email,
+            task_url=task_url,
         )
 
     if old_assignee_id and old_assignee_id != assignee_id and old_assignee_id != actor_id:
@@ -270,9 +273,12 @@ async def update_task(
             old_value=changes_old,
             new_value=changes_new,
         )
+        settings = get_settings()
+        task_url = f"{settings.app_url}/tasks/{task.id}"
         await _notify_assignee(
             db, task, plan_id, actor_id,
             email_service.send_task_updated_email,
+            task_url=task_url,
         )
 
 
@@ -337,6 +343,7 @@ async def _notify_assignee(
     plan_id: uuid.UUID,
     actor_id: uuid.UUID,
     send_func,
+    **kwargs
 ):
     """Send a notification email to the assigned user if they are subscribed and not the actor."""
     if not task.assigned_to or task.assigned_to == actor_id:
@@ -374,7 +381,7 @@ async def _notify_assignee(
         process_name=process_name,
         plan_name=plan_name,
         actor_name=actor_name,
-        task_url=task_url,
+        **kwargs
     )
 
 
