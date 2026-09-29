@@ -81,6 +81,16 @@ async def create_task(
         new_value={"title": title, "status": TaskStatus.new.value},
     )
 
+    settings = get_settings()
+    task_url = f"{settings.app_url}/tasks/{task.id}"
+
+    await _notify_subscribers(
+        db, tab_id, plan_id, created_by,
+        email_service.send_task_created_email,
+        task_title=task.title,
+        task_url=task_url,
+    )
+
     if task.assigned_to and task.assigned_to != created_by:
         await _notify_assignee(
             db, task, plan_id, created_by,
@@ -176,11 +186,22 @@ async def change_task_status(
         new_value={"status": new_status.value},
     )
 
+    settings = get_settings()
+    task_url = f"{settings.app_url}/tasks/{task.id}"
+
     if new_status == TaskStatus.closed_complete:
         await _notify_assignee(
             db, task, plan_id, actor_id,
             email_service.send_task_completed_email,
         )
+
+    await _notify_subscribers(
+        db, task.tab_id, plan_id, actor_id,
+        email_service.send_task_status_changed_email,
+        task_title=task.title,
+        new_status=new_status.value,
+        task_url=task_url,
+    )
 
     return True, ""
 
@@ -203,6 +224,8 @@ async def assign_task(
         new_value={"assigned_to": str(assignee_id) if assignee_id else None},
     )
 
+    task_url = f"{settings.app_url}/tasks/{task.id}"
+
     if assignee_id and assignee_id != old_assignee_id and assignee_id != actor_id:
         await _notify_assignee(
             db, task, plan_id, actor_id,
@@ -213,6 +236,13 @@ async def assign_task(
         await _notify_unassigned(
             db, old_assignee_id, task, plan_id, actor_id,
         )
+
+    await _notify_subscribers(
+        db, task.tab_id, plan_id, actor_id,
+        email_service.send_task_updated_email,
+        task_title=task.title,
+        task_url=task_url,
+    )
 
 
 async def update_task(
@@ -250,6 +280,56 @@ def can_edit_task(role: PlanRole, task: Task, user_id: uuid.UUID) -> bool:
     """Check if user can edit this task based on their role."""
     return role in (PlanRole.owner, PlanRole.admin, PlanRole.contributor)
 
+
+async def _notify_subscribers(
+    db: AsyncSession,
+    tab_id: uuid.UUID,
+    plan_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    send_func,
+    **send_kwargs,
+):
+    """Notify all users subscribed to a tab, except the actor."""
+    subbed_ids = await notification_service.get_subscribed_user_ids(db, tab_id)
+    if not subbed_ids:
+        return
+
+    users_to_notify = []
+    for uid in subbed_ids:
+        if uid != actor_id:
+            users_to_notify.append(uid)
+    if not users_to_notify:
+        return
+
+    result = await db.execute(select(User).where(User.id.in_(users_to_notify)))
+    subscribers = result.scalars().all()
+    if not subscribers:
+        return
+
+    actor_result = await db.execute(select(User).where(User.id == actor_id))
+    actor = actor_result.scalar_one_or_none()
+    actor_name = actor.display_name if actor else "Someone"
+
+    tab_result = await db.execute(select(ProcessTab).where(ProcessTab.id == tab_id))
+    tab = tab_result.scalar_one_or_none()
+    process_name = tab.name if tab else "Unknown Process"
+
+    plan_name = "Unknown Plan"
+    if tab:
+        plan_result = await db.execute(select(MigrationPlan).where(MigrationPlan.id == plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+        if plan_obj:
+            plan_name = plan_obj.name
+
+    for sub in subscribers:
+        if sub.email:
+            await send_func(
+                to_email=sub.email,
+                process_name=process_name,
+                plan_name=plan_name,
+                actor_name=actor_name,
+                **send_kwargs
+            )
 
 async def _notify_assignee(
     db: AsyncSession,

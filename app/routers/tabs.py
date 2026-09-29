@@ -15,9 +15,9 @@ from app.models.user import User
 from app.models.tab import ProcessTab
 from app.models.task import Task
 from app.models.step import TaskStep
-from app.models.plan import PlanMember
+from app.models.plan import PlanMember, MigrationPlan
 from app.services.plan_service import get_user_role_in_plan, can_edit_plan, can_create_tasks
-from app.services import notification_service
+from app.services import notification_service, email_service
 
 router = APIRouter(tags=["tabs"])
 
@@ -46,6 +46,10 @@ async def create_tab(
 
     tab = ProcessTab(plan_id=plan_id, name=name.strip(), sort_order=max_order + 1)
     db.add(tab)
+    await db.commit()
+
+    # The person who created the tab should automatically be subscribed to it
+    await notification_service.toggle_subscription(db, user.id, tab.id)
     await db.commit()
 
     return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
