@@ -10,6 +10,7 @@ from app.middleware.auth import require_auth
 from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User
 from urllib.parse import quote
+from app.models.tab import ProcessTab
 from app.models.plan import PlanRole, PlanMember
 from app.services.plan_service import (
     get_user_plans,
