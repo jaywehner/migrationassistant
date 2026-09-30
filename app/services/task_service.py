@@ -226,6 +226,7 @@ async def assign_task(
         new_value={"assigned_to": str(assignee_id) if assignee_id else None},
     )
 
+    settings = get_settings()
     task_url = f"{settings.app_url}/tasks/{task.id}"
 
     if assignee_id and assignee_id != old_assignee_id and assignee_id != actor_id:
@@ -238,6 +239,7 @@ async def assign_task(
     if old_assignee_id and old_assignee_id != assignee_id and old_assignee_id != actor_id:
         await _notify_unassigned(
             db, old_assignee_id, task, plan_id, actor_id,
+            task_url=task_url,
         )
 
     await _notify_subscribers(
@@ -391,6 +393,7 @@ async def _notify_unassigned(
     task: Task,
     plan_id: uuid.UUID,
     actor_id: uuid.UUID,
+    task_url: str,
 ):
     """Notify a previous assignee that they were reassigned away from this task."""
     if not old_assignee_id or old_assignee_id == actor_id:
@@ -420,8 +423,6 @@ async def _notify_unassigned(
         if plan_obj:
             plan_name = plan_obj.name
 
-    settings = get_settings()
-    task_url = f"{settings.app_url}/tasks/{task.id}"
     await email_service.send_task_unassigned_email(
         to_email=user.email,
         task_title=task.title,
