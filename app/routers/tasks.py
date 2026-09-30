@@ -331,7 +331,7 @@ async def delete_task(
         user_result = await db.execute(select(User).where(User.id.in_(subscribed_ids)))
         subscribers = user_result.scalars().all()
         for sub in subscribers:
-            if sub.id != user.id and sub.email:
+            if sub.email:
                 await email_service.send_task_deleted_email(
                     to_email=sub.email,
                     task_title=task_title,

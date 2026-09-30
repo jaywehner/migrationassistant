@@ -92,12 +92,15 @@ async def admin_dashboard(
     user_count = (await db.execute(select(func.count()).select_from(User))).scalar()
     plan_count = (await db.execute(select(func.count()).select_from(MigrationPlan))).scalar()
 
+    recent_logs, _, _ = await system_log_service.get_system_logs(db, page=1, page_size=5)
+
     return templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
         "current_user": user,
         "csrf_token": csrf_token,
         "user_count": user_count,
         "plan_count": plan_count,
+        "recent_logs": recent_logs,
     })
 
 

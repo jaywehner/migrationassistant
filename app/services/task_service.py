@@ -297,15 +297,12 @@ async def _notify_subscribers(
     send_func,
     **send_kwargs,
 ):
-    """Notify all users subscribed to a tab, except the actor."""
+    """Notify all users subscribed to a tab."""
     subbed_ids = await notification_service.get_subscribed_user_ids(db, tab_id)
     if not subbed_ids:
         return
 
-    users_to_notify = []
-    for uid in subbed_ids:
-        if uid != actor_id:
-            users_to_notify.append(uid)
+    users_to_notify = list(subbed_ids)
     if not users_to_notify:
         return
 
@@ -347,8 +344,8 @@ async def _notify_assignee(
     send_func,
     **kwargs
 ):
-    """Send a notification email to the assigned user if they are subscribed and not the actor."""
-    if not task.assigned_to or task.assigned_to == actor_id:
+    """Send a notification email to the assigned user if they are subscribed."""
+    if not task.assigned_to:
         return
 
     subbed = await notification_service.is_subscribed(db, task.assigned_to, task.tab_id)
@@ -396,7 +393,7 @@ async def _notify_unassigned(
     task_url: str,
 ):
     """Notify a previous assignee that they were reassigned away from this task."""
-    if not old_assignee_id or old_assignee_id == actor_id:
+    if not old_assignee_id:
         return
 
     subbed = await notification_service.is_subscribed(db, old_assignee_id, task.tab_id)

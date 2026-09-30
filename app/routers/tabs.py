@@ -66,7 +66,7 @@ async def create_tab(
     settings = get_settings()
     plan_url = f"{settings.app_url}/plans/{plan_id}"
     for member in members:
-        if member.user_id != user.id and member.user and member.user.email:
+        if member.user and member.user.email:
             await email_service.send_process_created_email(
                 to_email=member.user.email,
                 process_name=tab.name,
@@ -263,7 +263,7 @@ async def delete_tab(
         settings = get_settings()
         plan_url = f"{settings.app_url}/plans/{plan_id}"
         for member in members:
-            if member.user_id != user.id and member.user and member.user.email:
+            if member.user and member.user.email:
                 await email_service.send_process_deleted_email(
                     to_email=member.user.email,
                     process_name=tab_name,

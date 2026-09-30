@@ -31,8 +31,57 @@
                 <i class="bi bi-gear fs-1 text-secondary"></i>
                 <h5 class="mt-2">Settings</h5>
                 <p class="text-muted mb-0">SMTP, session, uploads</p>
-                <a href="/admin/settings" class="btn btn-sm btn-outline-secondary mt-3">Configure</a>
+                <a href="/admin/settings" class="btn btn-sm btn-outline-gold mt-3">Configure</a>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-journal-text me-2"></i>Recent System Logs</h6>
+        <a href="/admin/logs" class="btn btn-sm btn-outline-secondary">View All Logs</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Level</th>
+                        <th>Category</th>
+                        <th>Action</th>
+                        <th>Actor</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in recent_logs %}
+                    <tr>
+                        <td class="text-nowrap small">{{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+                        <td>
+                            <span class="badge {% if entry.level == 'debug' %}bg-secondary{% elif entry.level == 'verbose' %}bg-info text-dark{% else %}bg-primary{% endif %}">
+                                {{ entry.level }}
+                            </span>
+                        </td>
+                        <td class="small">{{ entry.category }}</td>
+                        <td class="small">{{ entry.action }}</td>
+                        <td class="small">{{ entry.actor_name or 'System' }}</td>
+                        <td class="small text-break" style="max-width: 300px;">
+                            {% if entry.details %}
+                            <code class="small">{{ entry.details }}</code>
+                            {% else %}
+                            <span class="text-muted">&mdash;</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No log entries yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
