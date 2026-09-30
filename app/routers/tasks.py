@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.templating import templates
 from app.middleware.auth import require_auth
+from app.config import get_settings
 from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User
 from app.models.task import TaskStatus, TaskPriority, VALID_TRANSITIONS
 from app.models.tab import ProcessTab
+from app.models.plan import MigrationPlan
 from sqlalchemy import select
 from app.services.plan_service import get_user_role_in_plan, get_plan_members, can_create_tasks
 from app.services.task_service import (
@@ -31,6 +33,7 @@ from app.services.task_service import (
     reorder_tasks,
     sanitize_step_html,
 )
+from app.services import system_log_service, notification_service, email_service
 
 router = APIRouter(tags=["tasks"])
 
@@ -64,7 +67,7 @@ async def create_task_route(
         except ValueError:
             pass
 
-    await create_task(
+    task = await create_task(
         db, tab_id, title.strip(), description.strip(),
         user.id, plan_id,
         assigned_to=assignee_id,
@@ -72,6 +75,21 @@ async def create_task_route(
         due_date=parsed_due,
     )
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="task_created", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "tab_id": str(tab_id),
+            "task_id": str(task.id),
+            "title": task.title,
+            "assigned_to": str(assignee_id) if assignee_id else None,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan_id}?tab={tab_id}", status_code=303)
 
 
@@ -144,6 +162,20 @@ async def change_status(
 
     await db.commit()
 
+    await system_log_service.log_system_event(
+        db, action="task_status_changed", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "title": task.title,
+            "old_status": task.status.value,
+            "new_status": new_status.value,
+        },
+        request=request,
+    )
+    await db.commit()
+
     # Return updated task detail for HTMX swap
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -171,6 +203,19 @@ async def assign_task_route(
         raise HTTPException(status_code=422, detail="Assignee must be a member of this plan")
 
     await assign_task(db, task, assignee_id, user.id, plan_id)
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="task_assigned", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "title": task.title,
+            "assigned_to": str(assignee_id) if assignee_id else None,
+        },
+        request=request,
+    )
     await db.commit()
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
@@ -222,6 +267,18 @@ async def edit_task(
     )
     await db.commit()
 
+    await system_log_service.log_system_event(
+        db, action="task_edited", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -243,8 +300,47 @@ async def delete_task(
         raise HTTPException(status_code=403)
 
     tab_id = task.tab_id
+    task_title = task.title
     await db.delete(task)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="task_deleted", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "tab_id": str(tab_id),
+            "task_id": str(task_id),
+            "title": task_title,
+        },
+        request=request,
+    )
+    await db.commit()
+
+    # Notify subscribers of the deleted task
+    settings = get_settings()
+    plan_result = await db.execute(select(MigrationPlan).where(MigrationPlan.id == plan_id))
+    plan_obj = plan_result.scalar_one_or_none()
+    plan_name = plan_obj.name if plan_obj else "Unknown Plan"
+    tab_result = await db.execute(select(ProcessTab).where(ProcessTab.id == tab_id))
+    tab_obj = tab_result.scalar_one_or_none()
+    process_name = tab_obj.name if tab_obj else "Unknown Process"
+    plan_url = f"{settings.app_url}/plans/{plan_id}"
+    subscribed_ids = await notification_service.get_subscribed_user_ids(db, tab_id)
+    if subscribed_ids:
+        user_result = await db.execute(select(User).where(User.id.in_(subscribed_ids)))
+        subscribers = user_result.scalars().all()
+        for sub in subscribers:
+            if sub.id != user.id and sub.email:
+                await email_service.send_task_deleted_email(
+                    to_email=sub.email,
+                    task_title=task_title,
+                    process_name=process_name,
+                    plan_name=plan_name,
+                    actor_name=user.display_name,
+                    plan_url=plan_url,
+                )
+
     return RedirectResponse(url=f"/plans/{plan_id}?tab={tab_id}", status_code=303)
 
 
@@ -278,8 +374,23 @@ async def copy_task_route(
     if not target_tab:
         raise HTTPException(status_code=422, detail="Target tab must be in the same plan")
 
-    await copy_task(db, task, target_tab_uuid, user.id, plan_id)
+    new_task = await copy_task(db, task, target_tab_uuid, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="task_copied", category="task",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "source_task_id": str(task_id),
+            "target_tab_id": str(target_tab_uuid),
+            "new_task_id": str(new_task.id),
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan_id}?tab={target_tab_uuid}&success=Task+copied", status_code=303)
 
 
@@ -308,6 +419,19 @@ async def create_step_route(
 
     await create_step(db, task, clean_title, code, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="step_created", category="step",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -335,6 +459,20 @@ async def delete_step_route(
 
     await delete_step(db, step, task, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="step_deleted", category="step",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "step_id": str(step_id),
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -362,6 +500,21 @@ async def toggle_step_route(
 
     await toggle_step(db, step, task)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="step_toggled", category="step",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "step_id": str(step_id),
+            "is_done": step.is_done,
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -395,6 +548,20 @@ async def edit_step_route(
 
     await update_step(db, step, task, clean_title, code, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="step_edited", category="step",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "step_id": str(step_id),
+            "title": task.title,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -427,6 +594,19 @@ async def reorder_steps_route(
 
     await reorder_steps(db, task, step_ids, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="steps_reordered", category="step",
+        level=system_log_service.LogLevel.debug.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "count": len(step_ids),
+        },
+        request=request,
+    )
+    await db.commit()
+
     return {"status": "ok"}
 
 
@@ -455,4 +635,17 @@ async def reorder_tasks_route(
 
     await reorder_tasks(db, tab_id, task_ids, user.id, plan_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tasks_reordered", category="task",
+        level=system_log_service.LogLevel.debug.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "tab_id": str(tab_id),
+            "count": len(task_ids),
+        },
+        request=request,
+    )
+    await db.commit()
+
     return {"status": "ok"}

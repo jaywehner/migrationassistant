@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # Session
     session_expire_hours: int = 24
 
+    # Logging
+    log_level: str = "normal"
+    log_retention_days: int = 30
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

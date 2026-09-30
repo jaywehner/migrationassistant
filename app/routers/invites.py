@@ -9,6 +9,7 @@ from app.templating import templates
 from app.middleware.auth import get_current_user
 from app.services.auth_service import verify_invite_token, get_user_by_email
 from app.services.plan_service import get_invite_by_token, accept_invite
+from app.services import system_log_service
 
 router = APIRouter(tags=["invites"])
 
@@ -61,6 +62,15 @@ async def accept_invite_page(
         # Accept the invite for the matching user
         await accept_invite(db, invite, current_user)
         await db.commit()
+
+        await system_log_service.log_system_event(
+            db, action="invite_accepted", category="member",
+            level=system_log_service.LogLevel.normal.value,
+            actor=current_user, details={"plan_id": str(invite.plan_id), "role": invite.role.value},
+            request=request,
+        )
+        await db.commit()
+
         return RedirectResponse(url=f"/plans/{invite.plan_id}", status_code=303)
 
     # Not logged in: route based on whether the email already has an account

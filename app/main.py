@@ -3,14 +3,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
+import logging
 import os
 
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.database import init_db, engine, get_configured_database_url
+    from app.database import init_db, AsyncSessionLocal
     await init_db()
 
     # Make sure all models are imported so their metadata is registered before create_all
@@ -22,10 +25,24 @@ async def lifespan(app: FastAPI):
     import app.models.attachment
     import app.models.audit
     import app.models.step
+    import app.models.system_log
     from app.database import Base
 
     settings = get_settings()
     os.makedirs(settings.upload_dir, exist_ok=True)
+
+    # Prune old system logs on startup
+    from app.services import system_log_service
+    if AsyncSessionLocal is not None:
+        async with AsyncSessionLocal() as session:
+            try:
+                deleted = await system_log_service.prune_old_logs(session)
+                await session.commit()
+                if deleted:
+                    logger.info("Pruned %s old system log entries", deleted)
+            except Exception:
+                await session.rollback()
+
     yield
 
 

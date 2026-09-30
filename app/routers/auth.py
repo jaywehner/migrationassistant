@@ -11,6 +11,7 @@ from app.database import get_db
 from app.templating import templates
 from app.middleware.auth import get_current_user, require_auth
 from app.middleware.csrf import generate_csrf_token, csrf_protect
+from app.models.user import User
 from app.services.auth_service import (
     get_user_by_email,
     create_user,
@@ -31,6 +32,7 @@ from app.services.auth_service import (
 )
 from app.services.email_service import send_verification_email, send_password_reset_email
 from app.services.plan_service import get_invite_by_token, accept_invite
+from app.services import system_log_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -105,6 +107,13 @@ async def register_submit(
 
     await db.commit()
 
+    await system_log_service.log_system_event(
+        db, action="user_registered", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"email": email, "via_invite": bool(invite_plan_id)},
+        request=request,
+    )
+
     if invite_plan_id:
         request.session["user_id"] = str(user.id)
         return RedirectResponse(url=f"/plans/{invite_plan_id}", status_code=303)
@@ -137,6 +146,12 @@ async def verify_email(request: Request, token: str, db: AsyncSession = Depends(
 
     user.email_verified = True
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="email_verified", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
 
     return templates.TemplateResponse("auth/verify_email.html", {
         "request": request,
@@ -171,6 +186,13 @@ async def login_submit(
 
     user = await get_user_by_email(db, email)
     if not user:
+        await system_log_service.log_system_event(
+            db, action="login_failed", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            details={"email": email, "reason": "user_not_found"},
+            request=request,
+        )
+        await db.commit()
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf_token,
@@ -180,6 +202,13 @@ async def login_submit(
 
     # Check lockout
     if await check_account_lockout(user):
+        await system_log_service.log_system_event(
+            db, action="login_failed", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"email": email, "reason": "account_locked"},
+            request=request,
+        )
+        await db.commit()
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf_token,
@@ -191,6 +220,13 @@ async def login_submit(
     if not verify_password(user.password_hash, password):
         await record_failed_login(db, user)
         await db.commit()
+        await system_log_service.log_system_event(
+            db, action="login_failed", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"email": email, "reason": "invalid_password"},
+            request=request,
+        )
+        await db.commit()
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf_token,
@@ -200,6 +236,13 @@ async def login_submit(
 
     # Check email verification
     if not user.email_verified:
+        await system_log_service.log_system_event(
+            db, action="login_failed", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"email": email, "reason": "email_not_verified"},
+            request=request,
+        )
+        await db.commit()
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "csrf_token": csrf_token,
@@ -216,6 +259,12 @@ async def login_submit(
     await reset_failed_logins(db, user)
     request.session["user_id"] = str(user.id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="login_success", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
 
     invite_token = request.session.pop("invite_token", None)
     if invite_token:
@@ -252,6 +301,12 @@ async def mfa_verify_submit(
         return RedirectResponse(url="/auth/login", status_code=303)
 
     if not verify_totp(user.mfa_secret, code):
+        await system_log_service.log_system_event(
+            db, action="mfa_verify_failed", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, request=request,
+        )
+        await db.commit()
         csrf_token = generate_csrf_token(request)
         return templates.TemplateResponse("auth/mfa_verify.html", {
             "request": request,
@@ -263,6 +318,13 @@ async def mfa_verify_submit(
     await reset_failed_logins(db, user)
     request.session.pop("mfa_user_id", None)
     request.session["user_id"] = str(user.id)
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="mfa_verify_success", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
     await db.commit()
 
     invite_token = request.session.pop("invite_token", None)
@@ -319,11 +381,28 @@ async def mfa_setup_submit(
     request.session.pop("mfa_setup_secret", None)
     await db.commit()
 
+    await system_log_service.log_system_event(
+        db, action="mfa_enabled", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/plans", status_code=303)
 
 
 @router.post("/logout")
-async def logout(request: Request):
+async def logout(
+    request: Request,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    await system_log_service.log_system_event(
+        db, action="logout", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
+    await db.commit()
     request.session.clear()
     return RedirectResponse(url="/auth/login", status_code=303)
 
@@ -356,6 +435,12 @@ async def forgot_password_submit(
     if user:
         token = generate_password_reset_token(str(user.id))
         await send_password_reset_email(email, token)
+        await system_log_service.log_system_event(
+            db, action="password_reset_requested", category="auth",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, request=request,
+        )
+        await db.commit()
 
     return templates.TemplateResponse("auth/forgot_password.html", {
         "request": request,
@@ -425,6 +510,13 @@ async def reset_password_submit(
 
     user.password_hash = hash_password(password)
     await reset_failed_logins(db, user)
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="password_reset_completed", category="auth",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, request=request,
+    )
     await db.commit()
 
     return RedirectResponse(url="/auth/login", status_code=303)

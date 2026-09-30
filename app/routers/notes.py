@@ -13,6 +13,7 @@ from app.models.note import TaskNote
 from app.services.task_service import get_task_by_id, get_plan_id_for_task
 from app.services.plan_service import get_user_role_in_plan
 from app.services.audit_service import log_action
+from app.services import system_log_service
 
 router = APIRouter(tags=["notes"])
 
@@ -67,6 +68,18 @@ async def add_note(
         db, plan_id, user.id,
         "note", str(note.id), "created",
         new_value={"task_id": str(task_id), "body_preview": body[:100]},
+    )
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="note_created", category="note",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "note_id": str(note.id),
+        },
+        request=request,
     )
     await db.commit()
 

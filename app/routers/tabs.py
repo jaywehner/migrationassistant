@@ -16,8 +16,9 @@ from app.models.tab import ProcessTab
 from app.models.task import Task
 from app.models.step import TaskStep
 from app.models.plan import PlanMember, MigrationPlan
-from app.services.plan_service import get_user_role_in_plan, can_edit_plan, can_create_tasks
-from app.services import notification_service, email_service
+from app.services.plan_service import get_user_role_in_plan, can_edit_plan, can_create_tasks, get_plan_members
+from app.services import notification_service, email_service, system_log_service
+from app.config import get_settings
 
 router = APIRouter(tags=["tabs"])
 
@@ -51,6 +52,28 @@ async def create_tab(
     # The person who created the tab should automatically be subscribed to it
     await notification_service.toggle_subscription(db, user.id, tab.id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tab_created", category="tab",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan_id), "tab_id": str(tab.id), "name": tab.name},
+        request=request,
+    )
+    await db.commit()
+
+    # Notify all plan members of the new process
+    members = await get_plan_members(db, plan_id)
+    settings = get_settings()
+    plan_url = f"{settings.app_url}/plans/{plan_id}"
+    for member in members:
+        if member.user_id != user.id and member.user and member.user.email:
+            await email_service.send_process_created_email(
+                to_email=member.user.email,
+                process_name=tab.name,
+                plan_name=member.plan.name if member.plan else "Unknown Plan",
+                actor_name=user.display_name,
+                plan_url=plan_url,
+            )
 
     return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
 
@@ -152,6 +175,21 @@ async def copy_tab(
             ))
 
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tab_copied", category="tab",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={
+            "source_plan_id": str(plan_id),
+            "source_tab_id": str(tab_id),
+            "target_plan_id": str(target_plan_id),
+            "target_tab_id": str(copied_tab.id),
+            "name": copied_name,
+        },
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(
         url=f"/plans/{target_plan_id}?tab={copied_tab.id}&success={quote('Process copied successfully.')}",
         status_code=303,
@@ -177,8 +215,18 @@ async def rename_tab(
     if not tab:
         raise HTTPException(status_code=404)
 
+    old_name = tab.name
     tab.name = name.strip()
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tab_renamed", category="tab",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={"plan_id": str(plan_id), "tab_id": str(tab_id), "old_name": old_name, "new_name": tab.name},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
 
 
@@ -198,8 +246,32 @@ async def delete_tab(
     result = await db.execute(select(ProcessTab).where(ProcessTab.id == tab_id, ProcessTab.plan_id == plan_id))
     tab = result.scalar_one_or_none()
     if tab:
+        tab_name = tab.name
+        plan_name = tab.plan.name if tab.plan else "Unknown Plan"
         await db.delete(tab)
         await db.commit()
+        await system_log_service.log_system_event(
+            db, action="tab_deleted", category="tab",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"plan_id": str(plan_id), "tab_id": str(tab_id), "name": tab_name},
+            request=request,
+        )
+        await db.commit()
+
+        # Notify all plan members of the deleted process
+        members = await get_plan_members(db, plan_id)
+        settings = get_settings()
+        plan_url = f"{settings.app_url}/plans/{plan_id}"
+        for member in members:
+            if member.user_id != user.id and member.user and member.user.email:
+                await email_service.send_process_deleted_email(
+                    to_email=member.user.email,
+                    process_name=tab_name,
+                    plan_name=plan_name,
+                    actor_name=user.display_name,
+                    plan_url=plan_url,
+                )
+
     return RedirectResponse(url=f"/plans/{plan_id}", status_code=303)
 
 
@@ -224,6 +296,15 @@ async def reorder_tabs(
             .values(sort_order=idx)
         )
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tabs_reordered", category="tab",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={"plan_id": str(plan_id), "count": len(order)},
+        request=request,
+    )
+    await db.commit()
+
     return {"ok": True}
 
 
@@ -249,6 +330,15 @@ async def toggle_subscription(
 
     subscribed = await notification_service.toggle_subscription(db, user.id, tab_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="tab_subscribe_toggled", category="tab",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={"plan_id": str(plan_id), "tab_id": str(tab_id), "subscribed": subscribed},
+        request=request,
+    )
+    await db.commit()
+
     return JSONResponse({"subscribed": subscribed, "tab_id": str(tab_id)})
 
 

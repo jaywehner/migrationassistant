@@ -13,10 +13,12 @@ from app.middleware.csrf import generate_csrf_token, csrf_protect
 from app.models.user import User, GlobalAccessLevel
 from app.models.audit import AuditLog
 from app.models.plan import PlanRole, MigrationPlan
+from app.models.system_log import LogLevel
 from app.services.plan_service import get_user_role_in_plan, get_plan_by_id
 from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password, validate_email_address
 from app.services.email_service import send_new_account_email
 from app.services.email_service import build_email_layout
+from app.services import system_log_service
 
 router = APIRouter(tags=["admin"])
 
@@ -152,6 +154,15 @@ async def admin_create_user(
     new_user.email_verified = True  # Admin-created users are pre-verified
     await send_new_account_email(email.strip(), password, display_name.strip())
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="admin_user_created", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"target_user_id": str(new_user.id), "email": email, "access_level": level.value},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
@@ -181,6 +192,15 @@ async def admin_update_user(
     target.global_access_level = level
     target.is_global_admin = level == GlobalAccessLevel.admin
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="admin_user_updated", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"target_user_id": str(target_user_id), "access_level": level.value},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
@@ -209,6 +229,15 @@ async def admin_reset_password(
 
     target.password_hash = hash_password(new_password)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="admin_password_reset", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"target_user_id": str(target_user_id)},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
@@ -230,8 +259,18 @@ async def admin_delete_user(
     if target.id == user.id:
         raise HTTPException(status_code=403, detail="You cannot delete your own account from here")
 
+    target_email = target.email
     await db.delete(target)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="admin_user_deleted", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"target_user_id": str(target_user_id), "email": target_email},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
@@ -259,6 +298,9 @@ async def admin_settings(
         "max_upload_size_mb": settings.max_upload_size_mb,
         "session_expire_hours": settings.session_expire_hours,
         "app_url": settings.app_url,
+        "log_level": settings.log_level,
+        "log_retention_days": settings.log_retention_days,
+        "log_levels": [LogLevel.normal.value, LogLevel.verbose.value, LogLevel.debug.value],
     })
 
 
@@ -275,6 +317,8 @@ async def admin_settings_update(
     max_upload_size_mb: int = Form(25),
     session_expire_hours: int = Form(24),
     app_url: str = Form(""),
+    log_level: str = Form("normal"),
+    log_retention_days: int = Form(30),
     user: User = Depends(require_global_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -298,6 +342,8 @@ async def admin_settings_update(
             "MAX_UPLOAD_SIZE_MB": str(max_upload_size_mb),
             "SESSION_EXPIRE_HOURS": str(session_expire_hours),
             "APP_URL": app_url.strip().rstrip("/"),
+            "LOG_LEVEL": log_level,
+            "LOG_RETENTION_DAYS": str(log_retention_days),
         }
 
         new_lines = []
@@ -321,7 +367,63 @@ async def admin_settings_update(
         for key, value in updates.items():
             os.environ[key] = value
 
+    await system_log_service.log_system_event(
+        db, action="admin_settings_updated", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"changed": "smtp, app_url, session, upload, logging"},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url="/admin/settings", status_code=303)
+
+
+@router.get("/admin/logs", response_class=HTMLResponse)
+async def admin_system_logs(
+    request: Request,
+    page: int = Query(1, ge=1),
+    category: str = Query(""),
+    level: str = Query(""),
+    user: User = Depends(require_global_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    csrf_token = generate_csrf_token(request)
+    entries, total, total_pages = await system_log_service.get_system_logs(
+        db, page=page, page_size=PAGE_SIZE,
+        category=category or None,
+        level=level or None,
+    )
+
+    categories = [
+        "auth", "plan", "tab", "task", "step", "note",
+        "attachment", "member", "admin", "system", "email",
+    ]
+
+    return templates.TemplateResponse("admin/system_logs.html", {
+        "request": request,
+        "current_user": user,
+        "csrf_token": csrf_token,
+        "entries": entries,
+        "page": page,
+        "total_pages": total_pages,
+        "total": total,
+        "category": category,
+        "level": level,
+        "categories": categories,
+        "levels": [LogLevel.normal.value, LogLevel.verbose.value, LogLevel.debug.value],
+    })
+
+
+@router.post("/admin/logs/prune")
+async def admin_prune_logs(
+    request: Request,
+    user: User = Depends(require_global_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    deleted = await system_log_service.prune_old_logs(db)
+    await db.commit()
+    return RedirectResponse(url=f"/admin/logs?success={deleted}+old+log+entries+pruned", status_code=303)
 
 
 @router.post("/admin/settings/test")
@@ -369,6 +471,20 @@ async def admin_settings_test_email(
             password=smtp_password or None,
             use_tls=smtp_use_tls.lower() == "true",
         )
+        await system_log_service.log_system_event(
+            db, action="admin_test_email_sent", category="email",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"to": test_email_to},
+            request=request,
+        )
+        await db.commit()
         return JSONResponse(content={"status": "success", "message": "Test email sent successfully"})
     except Exception as e:
+        await system_log_service.log_system_event(
+            db, action="admin_test_email_failed", category="email",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"to": test_email_to, "error": str(e)},
+            request=request,
+        )
+        await db.commit()
         return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=400)

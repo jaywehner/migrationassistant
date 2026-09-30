@@ -92,6 +92,33 @@
 
             <div class="card mt-4">
                 <div class="card-header bg-transparent">
+                    <h6 class="mb-0"><i class="bi bi-journal-text me-2"></i>System Logging</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Log Level</label>
+                        <select class="form-select" name="log_level">
+                            {% for l in log_levels %}
+                            <option value="{{ l }}" {% if log_level == l %}selected{% endif %}>{{ l|title }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Normal logs important events. Verbose adds task and plan changes. Debug logs every action.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Log Retention (days)</label>
+                        <input type="number" class="form-control" name="log_retention_days" value="{{ log_retention_days }}" min="1" max="3650" required>
+                        <div class="form-text">
+                            Logs older than this are automatically pruned. Manually prune from the System Logs page.
+                        </div>
+                    </div>
+                    <a href="/admin/logs" class="btn btn-sm btn-outline-secondary">View System Logs</a>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header bg-transparent">
                     <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>About</h6>
                 </div>
                 <div class="card-body">

@@ -128,6 +128,70 @@ async def send_new_account_email(to_email: str, password: str, display_name: str
     return await send_email(to_email, "Your Account Credentials - Migration Assistant", html)
 
 
+async def send_process_notification_email(
+    to_email: str,
+    subject: str,
+    title: str,
+    body_html: str,
+    plan_url: str,
+) -> bool:
+    html = build_email_layout(
+        title,
+        body_html,
+        "Open Plan",
+        plan_url,
+    )
+    return await send_email(to_email, subject, html)
+
+
+async def send_process_created_email(
+    to_email: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    plan_url: str,
+) -> bool:
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> added the process "
+        f"<strong>{safe_process}</strong> to <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the plan to view the new process.</p>"
+    )
+    return await send_process_notification_email(
+        to_email,
+        f"New Process: {process_name} - Migration Assistant",
+        "A new process was added",
+        body,
+        plan_url,
+    )
+
+
+async def send_process_deleted_email(
+    to_email: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    plan_url: str,
+) -> bool:
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> deleted the process "
+        f"<strong>{safe_process}</strong> from <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the plan to view remaining processes.</p>"
+    )
+    return await send_process_notification_email(
+        to_email,
+        f"Process Deleted: {process_name} - Migration Assistant",
+        "A process was deleted",
+        body,
+        plan_url,
+    )
+
+
 async def send_task_notification_email(
     to_email: str,
     subject: str,
@@ -142,6 +206,87 @@ async def send_task_notification_email(
         task_url,
     )
     return await send_email(to_email, subject, html)
+
+
+async def send_task_created_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> added a new task "
+        f"<strong>{safe_title}</strong> in <strong>{safe_process}</strong> under <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the task to view details.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"New Task: {task_title} - Migration Assistant",
+        "A task was added",
+        body,
+        task_url,
+    )
+
+
+async def send_task_deleted_email(
+    to_email: str,
+    task_title: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    plan_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> deleted the task "
+        f"<strong>{safe_title}</strong> from <strong>{safe_process}</strong> under <strong>{safe_plan}</strong>.</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the plan to view remaining tasks.</p>"
+    )
+    return await send_process_notification_email(
+        to_email,
+        f"Task Deleted: {task_title} - Migration Assistant",
+        "A task was deleted",
+        body,
+        plan_url,
+    )
+
+
+async def send_task_status_changed_email(
+    to_email: str,
+    task_title: str,
+    new_status: str,
+    process_name: str,
+    plan_name: str,
+    actor_name: str,
+    task_url: str,
+) -> bool:
+    safe_title = escape(task_title)
+    safe_status = escape(new_status)
+    safe_process = escape(process_name)
+    safe_plan = escape(plan_name)
+    safe_actor = escape(actor_name)
+    body = (
+        f"<p style=\"margin:0 0 14px;\"><strong>{safe_actor}</strong> changed the status of task "
+        f"<strong>{safe_title}</strong> to <strong>{safe_status}</strong>.</p>"
+        f"<p style=\"margin:0 0 8px;\"><strong>Process:</strong> {safe_process} &bull; <strong>Plan:</strong> {safe_plan}</p>"
+        f"<p style=\"margin:0;color:#6b7280;\">Open the task to review the outcome.</p>"
+    )
+    return await send_task_notification_email(
+        to_email,
+        f"Status changed: {task_title} - Migration Assistant",
+        "A task status was updated",
+        body,
+        task_url,
+    )
 
 
 async def send_task_assigned_email(

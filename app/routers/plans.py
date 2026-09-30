@@ -28,7 +28,7 @@ from app.services.plan_service import (
 )
 from app.services.auth_service import get_user_by_email, verify_invite_token, validate_email_address
 from app.services.email_service import send_invite_email
-from app.services import notification_service
+from app.services import notification_service, system_log_service
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -79,6 +79,15 @@ async def create_plan_submit(
 
     plan = await create_plan(db, name.strip(), description.strip(), user)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="plan_created", category="plan",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan.id), "name": plan.name},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan.id}", status_code=303)
 
 
@@ -188,9 +197,19 @@ async def edit_plan(
             status_code=303,
         )
 
+    old_name = plan.name
     plan.name = name
     plan.description = description.strip()
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="plan_edited", category="plan",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={"plan_id": str(plan_id), "old_name": old_name, "new_name": plan.name},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(
         url=f"/plans/{plan_id}?success={quote('Plan details updated.')}",
         status_code=303,
@@ -255,6 +274,15 @@ async def invite_member(
 
     invite = await create_invite(db, plan_id, email, target_role, user.id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="member_invited", category="member",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan_id), "email": email, "role": target_role.value},
+        request=request,
+    )
+    await db.commit()
+
     email_sent = await send_invite_email(email, plan.name, user.display_name, invite.token)
     if email_sent:
         return RedirectResponse(
@@ -313,6 +341,14 @@ async def add_existing_member(
     db.add(PlanMember(plan_id=plan_id, user_id=target_user.id, role=target_role, invited_by=user.id))
     await db.commit()
 
+    await system_log_service.log_system_event(
+        db, action="member_added", category="member",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan_id), "user_id": str(target_user.id), "email": email, "role": target_role.value},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(
         url=f"/plans/{plan_id}/members?success={quote(f'{target_user.display_name or email} was added to the plan.')}",
         status_code=303,
@@ -332,8 +368,20 @@ async def remove_plan_member(
     if not role or not can_manage_members(role):
         raise HTTPException(status_code=403)
 
+    result = await db.execute(select(PlanMember).where(PlanMember.id == member_id, PlanMember.plan_id == plan_id))
+    member = result.scalar_one_or_none()
+    removed_user_id = str(member.user_id) if member else None
     await remove_member(db, plan_id, member_id)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="member_removed", category="member",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan_id), "member_id": str(member_id), "user_id": removed_user_id},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan_id}/members", status_code=303)
 
 
@@ -358,6 +406,15 @@ async def change_role(
 
     await change_member_role(db, plan_id, member_user_id, target_role)
     await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="member_role_changed", category="member",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"plan_id": str(plan_id), "user_id": str(member_user_id), "new_role": target_role.value},
+        request=request,
+    )
+    await db.commit()
+
     return RedirectResponse(url=f"/plans/{plan_id}/members", status_code=303)
 
 
@@ -375,6 +432,14 @@ async def delete_plan(
 
     plan = await get_plan_by_id(db, plan_id)
     if plan:
+        plan_name = plan.name
         await db.delete(plan)
+        await db.commit()
+        await system_log_service.log_system_event(
+            db, action="plan_deleted", category="plan",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={"plan_id": str(plan_id), "name": plan_name},
+            request=request,
+        )
         await db.commit()
     return RedirectResponse(url="/plans", status_code=303)

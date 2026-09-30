@@ -6,6 +6,7 @@ from app.models.note import TaskNote
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.notification import ProcessNotificationSubscription
+from app.models.system_log import SystemLog, LogLevel
 
 __all__ = [
     "User",

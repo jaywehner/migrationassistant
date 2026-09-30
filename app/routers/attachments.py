@@ -21,6 +21,7 @@ from app.services.file_service import (
     get_mime_type,
 )
 from app.services.audit_service import log_action
+from app.services import system_log_service
 
 router = APIRouter(tags=["attachments"])
 
@@ -77,6 +78,20 @@ async def upload_attachment(
         db, plan_id, user.id,
         "attachment", str(attachment.id), "uploaded",
         new_value={"filename": file.filename, "size_bytes": len(data)},
+    )
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="attachment_uploaded", category="attachment",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "plan_id": str(plan_id),
+            "task_id": str(task_id),
+            "attachment_id": str(attachment.id),
+            "filename": file.filename,
+            "size_bytes": len(data),
+        },
+        request=request,
     )
     await db.commit()
 
@@ -168,6 +183,17 @@ async def delete_attachment_route(
 
     delete_file(attachment.storage_key)
     await db.delete(attachment)
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="attachment_deleted", category="attachment",
+        level=system_log_service.LogLevel.verbose.value,
+        actor=user, details={
+            "attachment_id": str(attachment_id),
+            "filename": attachment.original_filename,
+        },
+        request=request,
+    )
     await db.commit()
 
     task_id = attachment.task_id
