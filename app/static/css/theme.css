@@ -172,6 +172,7 @@ body {
 .badge-new { background-color: #0ea5e9; }
 .badge-open { background-color: #1e3a8a; }
 .badge-wip { background-color: #c89b5e; color: #0d1b2a; }
+.badge-ready-migration { background-color: #0d6efd; color: #fff; }
 .badge-waiting-client { background-color: #f97316; }
 .badge-waiting-vendor { background-color: #8b5cf6; }
 .badge-closed-complete { background-color: #22c55e; color: #0d1b2a; }

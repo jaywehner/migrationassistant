@@ -40,6 +40,7 @@
                         'New': 'badge-new',
                         'Open': 'badge-open',
                         'Work In Progress': 'badge-wip',
+                        'Ready for Migration': 'badge-ready-migration',
                         'Waiting on Client': 'badge-waiting-client',
                         'Waiting on Vendor': 'badge-waiting-vendor',
                     } %}
@@ -81,6 +82,13 @@
                 </td>
                 {% if can_create %}
                 <td class="text-end" onclick="event.stopPropagation()">
+                    <form method="post" action="/tasks/{{ task.id }}/status" class="d-inline-flex align-items-center me-2" title="{{ 'Reopen task' if task.status.value.startswith('Closed') else 'Close task' }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="status" value="{{ 'Open' if task.status.value.startswith('Closed') else 'Closed - Complete' }}">
+                        <input type="hidden" name="return_to" value="process">
+                        <input class="form-check-input mt-0" type="checkbox" aria-label="{{ 'Reopen task' if task.status.value.startswith('Closed') else 'Close task' }}"
+                               {% if task.status.value.startswith('Closed') %}checked{% endif %} onchange="this.form.submit()">
+                    </form>
                     <a href="/tasks/{{ task.id }}" class="btn btn-sm btn-outline-secondary me-1" title="Edit task">
                         <i class="bi bi-pencil"></i>
                     </a>

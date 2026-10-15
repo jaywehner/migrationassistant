@@ -135,6 +135,7 @@ async def change_status(
     request: Request,
     task_id: uuid.UUID,
     status: str = Form(...),
+    return_to: str = Form("detail"),
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -156,6 +157,7 @@ async def change_status(
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid status")
 
+    old_status = task.status
     success, error = await change_task_status(db, task, new_status, user.id, plan_id, role)
     if not success:
         raise HTTPException(status_code=422, detail=error)
@@ -169,14 +171,15 @@ async def change_status(
             "plan_id": str(plan_id),
             "task_id": str(task_id),
             "title": task.title,
-            "old_status": task.status.value,
+            "old_status": old_status.value,
             "new_status": new_status.value,
         },
         request=request,
     )
     await db.commit()
 
-    # Return updated task detail for HTMX swap
+    if return_to == "process":
+        return RedirectResponse(url=f"/plans/{plan_id}?tab={task.tab_id}", status_code=303)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 

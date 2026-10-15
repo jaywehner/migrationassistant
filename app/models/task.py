@@ -14,6 +14,7 @@ class TaskStatus(str, enum.Enum):
     waiting_on_client = "Waiting on Client"
     waiting_on_vendor = "Waiting on Vendor"
     work_in_progress = "Work In Progress"
+    ready_for_migration = "Ready for Migration"
     closed_not_needed = "Closed - Not Needed"
     closed_complete = "Closed - Complete"
 
@@ -32,6 +33,7 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.work_in_progress,
         TaskStatus.waiting_on_client,
         TaskStatus.waiting_on_vendor,
+        TaskStatus.ready_for_migration,
         TaskStatus.closed_not_needed,
         TaskStatus.closed_complete,
     },
@@ -39,6 +41,7 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.work_in_progress,
         TaskStatus.waiting_on_client,
         TaskStatus.waiting_on_vendor,
+        TaskStatus.ready_for_migration,
         TaskStatus.closed_not_needed,
         TaskStatus.closed_complete,
     },
@@ -46,6 +49,7 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.open,
         TaskStatus.waiting_on_client,
         TaskStatus.waiting_on_vendor,
+        TaskStatus.ready_for_migration,
         TaskStatus.closed_complete,
         TaskStatus.closed_not_needed,
     },
@@ -53,6 +57,7 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.open,
         TaskStatus.work_in_progress,
         TaskStatus.waiting_on_vendor,
+        TaskStatus.ready_for_migration,
         TaskStatus.closed_not_needed,
         TaskStatus.closed_complete,
     },
@@ -60,6 +65,15 @@ VALID_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
         TaskStatus.open,
         TaskStatus.work_in_progress,
         TaskStatus.waiting_on_client,
+        TaskStatus.ready_for_migration,
+        TaskStatus.closed_not_needed,
+        TaskStatus.closed_complete,
+    },
+    TaskStatus.ready_for_migration: {
+        TaskStatus.open,
+        TaskStatus.work_in_progress,
+        TaskStatus.waiting_on_client,
+        TaskStatus.waiting_on_vendor,
         TaskStatus.closed_not_needed,
         TaskStatus.closed_complete,
     },

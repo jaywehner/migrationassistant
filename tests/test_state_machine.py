@@ -43,6 +43,23 @@ class TestStateTransitions:
         assert TaskStatus.closed_complete in valid
         assert TaskStatus.closed_not_needed in valid
 
+    def test_working_statuses_can_be_ready_for_migration(self):
+        for status in (
+            TaskStatus.new,
+            TaskStatus.open,
+            TaskStatus.work_in_progress,
+            TaskStatus.waiting_on_client,
+            TaskStatus.waiting_on_vendor,
+        ):
+            assert TaskStatus.ready_for_migration in VALID_TRANSITIONS[status]
+
+    def test_ready_for_migration_can_close_or_return_to_work(self):
+        valid = VALID_TRANSITIONS[TaskStatus.ready_for_migration]
+        assert TaskStatus.closed_complete in valid
+        assert TaskStatus.closed_not_needed in valid
+        assert TaskStatus.open in valid
+        assert TaskStatus.work_in_progress in valid
+
     def test_waiting_on_client_can_reopen(self):
         valid = VALID_TRANSITIONS[TaskStatus.waiting_on_client]
         assert TaskStatus.open in valid
