@@ -106,6 +106,25 @@ class TestChangeTaskStatus:
         assert task.status == TaskStatus.open
 
     @pytest.mark.asyncio
+    async def test_same_status_is_no_op(self, db_session):
+        task = Task(
+            id=uuid.uuid4(),
+            tab_id=uuid.uuid4(),
+            title="Test",
+            status=TaskStatus.open,
+            created_by=uuid.uuid4(),
+        )
+        plan_id = uuid.uuid4()
+
+        success, error = await change_task_status(
+            db_session, task, TaskStatus.open,
+            uuid.uuid4(), plan_id, PlanRole.contributor,
+        )
+        assert success is True
+        assert error == ""
+        assert task.status == TaskStatus.open
+
+    @pytest.mark.asyncio
     async def test_invalid_transition(self, db_session):
         task = Task(
             id=uuid.uuid4(),

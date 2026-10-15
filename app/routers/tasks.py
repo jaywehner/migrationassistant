@@ -164,19 +164,20 @@ async def change_status(
 
     await db.commit()
 
-    await system_log_service.log_system_event(
-        db, action="task_status_changed", category="task",
-        level=system_log_service.LogLevel.normal.value,
-        actor=user, details={
-            "plan_id": str(plan_id),
-            "task_id": str(task_id),
-            "title": task.title,
-            "old_status": old_status.value,
-            "new_status": new_status.value,
-        },
-        request=request,
-    )
-    await db.commit()
+    if old_status != new_status:
+        await system_log_service.log_system_event(
+            db, action="task_status_changed", category="task",
+            level=system_log_service.LogLevel.normal.value,
+            actor=user, details={
+                "plan_id": str(plan_id),
+                "task_id": str(task_id),
+                "title": task.title,
+                "old_status": old_status.value,
+                "new_status": new_status.value,
+            },
+            request=request,
+        )
+        await db.commit()
 
     if return_to == "process":
         return RedirectResponse(url=f"/plans/{plan_id}?tab={task.tab_id}", status_code=303)

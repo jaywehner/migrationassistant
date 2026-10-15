@@ -162,6 +162,10 @@ async def change_task_status(
     """Change task status following the state machine. Returns (success, error_message)."""
     old_status = task.status
 
+    # No-op if the status hasn't changed
+    if old_status == new_status:
+        return True, ""
+
     # Check if transition is valid
     valid_next = VALID_TRANSITIONS.get(old_status, set())
     if new_status not in valid_next:
