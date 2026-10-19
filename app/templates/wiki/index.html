@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Wiki - Migration Platform{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-book me-2"></i>Migration Assistant Wiki</h4>
+</div>
+
+<div class="row">
+    <div class="col-lg-3 d-none d-lg-block">
+        <div class="card position-sticky" style="top:1rem;">
+            <div class="card-header">
+                <strong>Contents</strong>
+            </div>
+            <div class="list-group list-group-flush" id="wiki-toc">
+                <a href="#overview" class="list-group-item list-group-item-action">Overview</a>
+                <a href="#install" class="list-group-item list-group-item-action">Installation</a>
+                <a href="#setup" class="list-group-item list-group-item-action">First-Time Setup</a>
+                <a href="#auth" class="list-group-item list-group-item-action">Accounts & Login</a>
+                <a href="#plans" class="list-group-item list-group-item-action">Migration Plans</a>
+                <a href="#members" class="list-group-item list-group-item-action">Members & Invites</a>
+                <a href="#processes" class="list-group-item list-group-item-action">Processes</a>
+                <a href="#subscriptions" class="list-group-item list-group-item-action">Email Subscriptions</a>
+                <a href="#tasks" class="list-group-item list-group-item-action">Tasks</a>
+                <a href="#steps" class="list-group-item list-group-item-action">Task Steps</a>
+                <a href="#notes" class="list-group-item list-group-item-action">Notes & Attachments</a>
+                <a href="#email" class="list-group-item list-group-item-action">Email & Notifications</a>
+                <a href="#admin" class="list-group-item list-group-item-action">Admin Area</a>
+                <a href="#security" class="list-group-item list-group-item-action">Roles & Permissions</a>
+                <a href="#troubleshooting" class="list-group-item list-group-item-action">Troubleshooting</a>
+                <a href="#faq" class="list-group-item list-group-item-action">FAQ</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        <div class="card mb-4" id="overview">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Overview</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Migration Assistant</strong> is a web-based collaboration platform for teams planning and executing infrastructure or application migrations. It lets you organize work into <strong>Plans</strong>, break each plan into <strong>Processes</strong>, and track work with <strong>Tasks</strong>, <strong>Steps</strong>, <strong>Notes</strong>, and <strong>Attachments</strong>.</p>
+                <p>Key features include:</p>
+                <ul>
+                    <li>Multi-user workspaces with role-based access control</li>
+                    <li>Drag-and-drop reordering of processes and tasks</li>
+                    <li>Rich-text and code-block step editing</li>
+                    <li>Email notifications for process and task changes</li>
+                    <li>System-wide audit logging</li>
+                    <li>Responsive, branded UI</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="install">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-download me-2"></i>Installation</h5>
+            </div>
+            <div class="card-body">
+                <h6>Prerequisites</h6>
+                <ul>
+                    <li><strong>Python 3.11</strong> (for local development)</li>
+                    <li><strong>PostgreSQL 15+</strong> (recommended for production)</li>
+                    <li><strong>Docker & Docker Compose</strong> (optional, recommended for production)</li>
+                </ul>
+
+                <h6>Local Development</h6>
+                <ol>
+                    <li>Clone the repository:
+                        <pre class="bg-light p-2 rounded"><code>git clone https://github.com/jaywehner/migrationassistant.git
+cd migrationassistant</code></pre>
+                    </li>
+                    <li>Create a virtual environment and install dependencies:
+                        <pre class="bg-light p-2 rounded"><code>python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt</code></pre>
+                    </li>
+                    <li>Copy the example environment file and edit it:
+                        <pre class="bg-light p-2 rounded"><code>cp .env.example .env</code></pre>
+                        Set at minimum:
+                        <ul>
+                            <li><code>DATABASE_URL</code> - connection string for Postgres, or SQLite</li>
+                            <li><code>SECRET_KEY</code> - a long random string</li>
+                            <li><code>APP_URL</code> - the public URL of the app</li>
+                        </ul>
+                    </li>
+                    <li>Apply database migrations:
+                        <pre class="bg-light p-2 rounded"><code>alembic upgrade head</code></pre>
+                    </li>
+                    <li>Start the development server:
+                        <pre class="bg-light p-2 rounded"><code>python -m uvicorn app.main:app --host 0.0.0.0 --port 8000</code></pre>
+                    </li>
+                </ol>
+
+                <h6>Production Deployment with Docker</h6>
+                <ol>
+                    <li>On your server, clone or pull the latest code:
+                        <pre class="bg-light p-2 rounded"><code>git pull origin main</code></pre>
+                    </li>
+                    <li>Build and start the containers:
+                        <pre class="bg-light p-2 rounded"><code>docker compose up --build -d</code></pre>
+                    </li>
+                    <li>The application container automatically runs Alembic migrations on startup.</li>
+                    <li>After code updates, always run:
+                        <pre class="bg-light p-2 rounded"><code>git pull origin main
+docker compose up --build -d</code></pre>
+                        Restarting an old container is not enough because it may still contain stale code.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="setup">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>First-Time Setup</h5>
+            </div>
+            <div class="card-body">
+                <p>The first time the application runs it launches a setup wizard at <code>/setup</code>. The wizard prompts for:</p>
+                <ul>
+                    <li>Application name and public URL</li>
+                    <li>Database connection details</li>
+                    <li>SMTP server settings (host, port, username, password, TLS/SSL)</li>
+                    <li>Default sender name and email address</li>
+                </ul>
+                <p>After the wizard completes, the system creates a <code>.setup_complete</code> marker so the wizard no longer appears. To re-run setup, remove the marker file inside the container or local data directory and restart the app.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb me-2"></i>SMTP settings can later be changed from the Admin Area without re-running the wizard.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="auth">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Accounts & Login</h5>
+            </div>
+            <div class="card-body">
+                <h6>Registration</h6>
+                <p>Users can register via the public registration page. New accounts must verify their email address before they can be added to plans or receive notifications.</p>
+
+                <h6>Multi-Factor Authentication (MFA)</h6>
+                <p>After logging in, users can enable MFA from their profile area. The app generates a TOTP secret that can be scanned by any authenticator application. MFA can only be disabled by a global administrator.</p>
+
+                <h6>Password Reset</h6>
+                <p>From the login page, users can request a password reset link via email. The link is single-use and expires after a configurable timeout.</p>
+
+                <h6>Session</h6>
+                <p>Sessions expire after the number of hours configured in <code>SESSION_EXPIRE_HOURS</code> (default: 24). Global administrators can adjust this from the Admin Area.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="plans">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>Migration Plans</h5>
+            </div>
+            <div class="card-body">
+                <p>A <strong>Plan</strong> is the top-level container for a migration project. Every plan has a name, an optional description, and one or more members.</p>
+
+                <h6>Creating a Plan</h6>
+                <ol>
+                    <li>Click <strong>Create Plan</strong> in the left sidebar or on the My Plans page.</li>
+                    <li>Enter a plan name and optional description.</li>
+                    <li>Click <strong>Create</strong>. You automatically become the plan Owner.</li>
+                </ol>
+
+                <h6>Editing a Plan</h6>
+                <p>From the plan detail page, click the plan name or the pencil icon to edit the name and description.</p>
+
+                <h6>Deleting a Plan</h6>
+                <p>Only the plan Owner or a global administrator can delete a plan. Deleting a plan removes all of its processes, tasks, steps, notes, and attachments.</p>
+
+                <h6>Plan Dashboard</h6>
+                <p>The Analytics page shows aggregated metrics across all plans you can access, including total plans, completion rate, overdue tasks, and per-plan progress.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="members">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Members & Invites</h5>
+            </div>
+            <div class="card-body">
+                <h6>Inviting Members</h6>
+                <ol>
+                    <li>Open the plan detail page.</li>
+                    <li>Click <strong>Manage Members</strong> (or the members icon).</li>
+                    <li>Enter the email address of the person you want to invite.</li>
+                    <li>Choose a role (Owner, Admin, Contributor, or Read Only).</li>
+                    <li>Send the invitation.</li>
+                </ol>
+
+                <h6>Roles</h6>
+                <ul>
+                    <li><strong>Owner</strong> - Full control over the plan, including deletion and member management.</li>
+                    <li><strong>Admin</strong> - Can manage members, processes, and tasks; can reopen closed tasks.</li>
+                    <li><strong>Contributor</strong> - Can create and edit tasks and steps; cannot manage members or delete plans.</li>
+                    <li><strong>Read Only</strong> - Can view plans and tasks but cannot make changes.</li>
+                </ul>
+
+                <h6>Accepting Invitations</h6>
+                <p>Invited users receive an email with a unique link. Clicking the link adds them to the plan with the assigned role. Unregistered users who accept an invitation are guided through account creation first.</p>
+
+                <h6>Removing Members</h6>
+                <p>Owners and Admins can remove members from a plan. Removed users lose access to all plan data and stop receiving notifications for that plan.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="processes">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-folder me-2"></i>Processes</h5>
+            </div>
+            <div class="card-body">
+                <p>Each plan is divided into <strong>Processes</strong> (also called tabs). Processes represent stages, workstreams, or categories of work within a migration.</p>
+
+                <h6>Creating a Process</h6>
+                <ol>
+                    <li>Inside a plan, click <strong>Add Process</strong>.</li>
+                    <li>Enter a name and confirm.</li>
+                    <li>The new process appears as a tab and is automatically numbered.</li>
+                </ol>
+
+                <h6>Reordering Processes</h6>
+                <p>Drag the handle next to a process tab to reorder it. Numbers update automatically after the new order is saved.</p>
+
+                <h6>Renaming & Copying</h6>
+                <p>Hover over or click a process tab to rename it. Processes can also be copied within the same plan or to another plan. Copying a process copies all of its tasks and steps.</p>
+
+                <h6>Deleting a Process</h6>
+                <p>Owners and Admins can delete a process. Deleting a process also deletes all tasks, steps, notes, and attachments inside it.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="subscriptions">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Email Subscriptions</h5>
+            </div>
+            <div class="card-body">
+                <p>You can subscribe to email notifications for individual processes. When subscribed, you receive emails for task additions, deletions, status changes, and assignments inside that process.</p>
+
+                <h6>Managing Subscriptions</h6>
+                <ol>
+                    <li>From the top-right user menu, choose <strong>Subscriptions</strong>.</li>
+                    <li>Toggle the envelope icon next to each process you want to follow.</li>
+                </ol>
+                <p>Alternatively, click the envelope icon on a process tab inside any plan.</p>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-lightbulb me-2"></i>A filled/gold envelope means you are subscribed. An outline envelope means you are not subscribed.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="tasks">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check2-square me-2"></i>Tasks</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Tasks</strong> live inside processes and represent a discrete unit of work. Each task has a title, description, status, priority, due date, assignee, and progress percentage.</p>
+
+                <h6>Creating a Task</h6>
+                <ol>
+                    <li>Open a process tab.</li>
+                    <li>Click <strong>Add Task</strong>.</li>
+                    <li>Fill in the title, optional description, assignee, priority, and due date.</li>
+                    <li>Click <strong>Create Task</strong>.</li>
+                </ol>
+
+                <h6>Task Statuses</h6>
+                <p>The application uses a state machine for task statuses:</p>
+                <ul>
+                    <li><strong>New</strong> - Task has just been created.</li>
+                    <li><strong>Open</strong> - Task is ready to be worked.</li>
+                    <li><strong>Work In Progress</strong> - Active work is happening.</li>
+                    <li><strong>Waiting on Client</strong> - Blocked waiting for client input.</li>
+                    <li><strong>Waiting on Vendor</strong> - Blocked waiting for vendor input.</li>
+                    <li><strong>Ready for Migration</strong> - Work is complete and ready to be migrated.</li>
+                    <li><strong>Closed - Complete</strong> - Task is finished successfully.</li>
+                    <li><strong>Closed - Not Needed</strong> - Task is no longer required.</li>
+                </ul>
+                <p>Closed tasks can only be reopened by Owners or Admins. Contributors can move tasks through working statuses.</p>
+
+                <h6>Quick Close / Reopen</h6>
+                <p>On the process task list, click the gold-outlined checkbox in the Actions column to close a task as complete or reopen it.</p>
+
+                <h6>Assigning Tasks</h6>
+                <p>Open a task detail page and use the <strong>Assigned To</strong> dropdown. The assignee must already be a member of the plan. If no user is assigned, no assignment notification is sent.</p>
+
+                <h6>Task Priority & Due Date</h6>
+                <p>Priority levels are Low, Medium, High, and Critical. Tasks with past due dates appear in the Analytics dashboard as overdue.</p>
+
+                <h6>Progress</h6>
+                <p>Progress is shown as a percentage and a progress bar. Closing a task as complete automatically sets progress to 100%; closing as not needed resets it to 0%.</p>
+
+                <h6>Copying & Deleting Tasks</h6>
+                <p>From the process list, click the copy icon to duplicate a task (and its steps) into another process. Click the trash icon to delete a task.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="steps">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Task Steps</h5>
+            </div>
+            <div class="card-body">
+                <p>Steps let you break a task down into smaller instructions. Each step has a title, a rich-text description, and an optional code snippet.</p>
+
+                <h6>Adding Steps</h6>
+                <ol>
+                    <li>Open a task detail page.</li>
+                    <li>Scroll to the Steps section.</li>
+                    <li>Enter a title, optional description, and optional code block.</li>
+                    <li>Click <strong>Add Step</strong>.</li>
+                </ol>
+
+                <h6>Rich Text & Code</h6>
+                <p>Step descriptions support formatted text, bullet and numbered lists, links, inline code, and code blocks. The editor sanitizes content to prevent unsafe HTML.</p>
+
+                <h6>Reordering Steps</h6>
+                <p>Drag steps by the handle to reorder them. Step numbers update automatically.</p>
+
+                <h6>Completing Steps</h6>
+                <p>Click the checkbox next to a step to mark it done. The task detail page shows how many steps are completed.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="notes">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Notes & Attachments</h5>
+            </div>
+            <div class="card-body">
+                <h6>Notes</h6>
+                <p>Task notes are plain-text comments visible to all plan members. Use them for status updates, reminders, or questions about a task.</p>
+
+                <h6>Attachments</h6>
+                <p>Files can be attached to tasks. Supported types include images and PDFs, which are rendered with a preview in the browser. Upload limits are controlled by the application configuration.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="email">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-envelope-at me-2"></i>Email & Notifications</h5>
+            </div>
+            <div class="card-body">
+                <p>Email notifications keep team members informed without requiring them to check the application constantly.</p>
+
+                <h6>Events That Send Email</h6>
+                <ul>
+                    <li>A process is added or deleted.</li>
+                    <li>A task is added or deleted.</li>
+                    <li>A task status changes.</li>
+                    <li>A task is assigned, reassigned, or unassigned.</li>
+                    <li>A task is saved/updated (assignee notification).</li>
+                    <li>A task is marked Closed - Complete.</li>
+                </ul>
+
+                <h6>Who Receives Emails</h6>
+                <p>Process-level task emails go to users subscribed to the process. Assignment emails go to the affected assignee. If a task has no assignee, no assignment email is sent.</p>
+
+                <h6>SMTP Configuration</h6>
+                <p>Global administrators configure SMTP in the Admin Area. Use the <strong>Send Test Email</strong> button to confirm connectivity. A successful test proves the server can connect; it does not prove notification logic is triggered.</p>
+
+                <h6>Account-Created Credentials</h6>
+                <p>When an administrator creates a user from the Admin Area, the platform can email the user their temporary credentials. SMTP must be configured for this to work.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="admin">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Admin Area</h5>
+            </div>
+            <div class="card-body">
+                <p>Global administrators access the Admin Area from the left sidebar. It includes:</p>
+
+                <h6>Dashboard</h6>
+                <p>Summary cards for registered users, migration plans, and recent system log entries. A full-width card shows the latest five log messages with a link to the full logs page.</p>
+
+                <h6>Manage Users</h6>
+                <p>Add, edit, disable, or delete user accounts. New administrator-created users can receive credential emails.</p>
+
+                <h6>System Logs</h6>
+                <p>View a paginated list of actions across the application. Logs include categories such as auth, plans, members, tabs, tasks, steps, notes, attachments, and admin actions. Passwords, tokens, and form text content are never written to logs.</p>
+
+                <h6>Settings</h6>
+                <p>Configure application name, public URL, session expiry, SMTP server, sender details, log level, and log retention. Retention controls how many days of system logs are kept before automatic pruning.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="security">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Roles & Permissions</h5>
+            </div>
+            <div class="card-body">
+                <p>The platform has two permission layers:</p>
+                <ul>
+                    <li><strong>Global access level</strong> (Read Only, Normal, Admin) controls whether a user can create plans, access the Admin Area, or only view content.</li>
+                    <li><strong>Plan role</strong> (Owner, Admin, Contributor, Read Only) controls what a user can do inside a specific plan.</li>
+                </ul>
+                <p>Only global administrators can access the Admin Area and manage SMTP settings. Only plan Owners can delete plans.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="troubleshooting">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Troubleshooting</h5>
+            </div>
+            <div class="card-body">
+                <h6>"Not Found" on a new page after deployment</h6>
+                <p>The container may be running old code. Always deploy with <code>docker compose up --build -d</code>, not just <code>docker compose restart</code>.</p>
+
+                <h6>SMTP test works but notifications do not arrive</h6>
+                <ul>
+                    <li>Confirm you are subscribed to the process.</li>
+                    <li>Check the application logs for <code>Failed to send email</code> errors.</li>
+                    <li>Ensure the production container includes the latest code.</li>
+                </ul>
+
+                <h6>"Relation does not exist" database errors</h6>
+                <p>A migration has not been applied. Run <code>alembic upgrade head</code> inside the container or let the Docker startup script do it.</p>
+
+                <h6>Database connection refused locally</h6>
+                <p>The default local configuration expects PostgreSQL on localhost. Either start a local Postgres server or change <code>DATABASE_URL</code> to point to an available database.</p>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="faq">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>FAQ</h5>
+            </div>
+            <div class="card-body">
+                <h6>Can I use SQLite?</h6>
+                <p>SQLite can be used for local development, but PostgreSQL is required for production because the application uses PostgreSQL-specific features such as native enums and the subscription/log tables.</p>
+
+                <h6>Can I customize the colors or logo?</h6>
+                <p>The application uses a central theme file at <code>app/static/css/theme.css</code>. A separate <code>CPC_Theme</code> folder is provided for theme-building experiments and is not referenced by the application code.</p>
+
+                <h6>What happens when I delete a task?</h6>
+                <p>Deleting a task removes its steps, notes, and attachments permanently. Subscribed users receive an email notification.</p>
+
+                <h6>Can a contributor reopen a closed task?</h6>
+                <p>No. Only plan Owners and Admins can transition a task out of a closed status.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
