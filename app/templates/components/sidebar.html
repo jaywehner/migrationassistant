@@ -18,9 +18,15 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link rounded d-flex align-items-center gap-2" href="/analytics">
+                <a class="nav-link rounded d-flex align-items-center gap-2{% if request.url.path.startswith('/analytics') %} active{% endif %}" href="/analytics">
                     <i class="bi bi-bar-chart-line"></i>
                     <span>Analytics</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link rounded d-flex align-items-center gap-2{% if request.url.path.startswith('/wiki') %} active{% endif %}" href="/wiki">
+                    <i class="bi bi-book"></i>
+                    <span>Wiki</span>
                 </a>
             </li>
             {% if current_user.global_access_level.value != 'read_only' %}
