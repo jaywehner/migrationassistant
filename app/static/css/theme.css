@@ -578,4 +578,54 @@ body {
     color: #9a713d;
 }
 
+/* Wiki page */
+.wiki-card .card-body {
+    color: var(--cpc-text);
+}
+
+[data-bs-theme="dark"] .wiki-card .card-body,
+[data-bs-theme="dark"] .wiki-card .card-body p,
+[data-bs-theme="dark"] .wiki-card .card-body li,
+[data-bs-theme="dark"] .wiki-card .card-body ul,
+[data-bs-theme="dark"] .wiki-card .card-body ol,
+[data-bs-theme="dark"] .wiki-card .card-body h6,
+[data-bs-theme="dark"] .wiki-card .card-body strong,
+[data-bs-theme="dark"] .wiki-card .card-body code {
+    color: #e9edf2;
+}
+
+[data-bs-theme="dark"] .wiki-card .card-body a {
+    color: #9ac0e8;
+}
+
+.wiki-code {
+    background: #f5f6f7;
+    color: var(--cpc-text);
+    border: 1px solid #dfe3e8;
+}
+
+[data-bs-theme="dark"] .wiki-code {
+    background: #1a2433;
+    color: #e9edf2;
+    border-color: #26384d;
+}
+
+[data-bs-theme="dark"] #wiki-toc .list-group-item {
+    background-color: #111f30;
+    color: #e9edf2;
+    border-color: #26384d;
+}
+
+[data-bs-theme="dark"] #wiki-toc .list-group-item-action:hover {
+    background-color: #1a2433;
+    color: var(--cpc-gold);
+}
+
+[data-bs-theme="dark"] .wiki-card .card-header {
+    background: #111f30;
+    border-bottom-color: #26384d;
+    color: #e9edf2;
+}
+
+
 

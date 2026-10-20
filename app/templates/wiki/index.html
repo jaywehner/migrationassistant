@@ -33,7 +33,7 @@
     </div>
 
     <div class="col-lg-9">
-        <div class="card mb-4" id="overview">
+        <div class="card mb-4 wiki-card" id="overview">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Overview</h5>
             </div>
@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <div class="card mb-4" id="install">
+        <div class="card mb-4 wiki-card" id="install">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-download me-2"></i>Installation</h5>
             </div>
@@ -66,16 +66,16 @@
                 <h6>Local Development</h6>
                 <ol>
                     <li>Clone the repository:
-                        <pre class="bg-light p-2 rounded"><code>git clone https://github.com/jaywehner/migrationassistant.git
+                        <pre class="wiki-code p-2 rounded"><code>git clone https://github.com/jaywehner/migrationassistant.git
 cd migrationassistant</code></pre>
                     </li>
                     <li>Create a virtual environment and install dependencies:
-                        <pre class="bg-light p-2 rounded"><code>python -m venv .venv
+                        <pre class="wiki-code p-2 rounded"><code>python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt</code></pre>
                     </li>
                     <li>Copy the example environment file and edit it:
-                        <pre class="bg-light p-2 rounded"><code>cp .env.example .env</code></pre>
+                        <pre class="wiki-code p-2 rounded"><code>cp .env.example .env</code></pre>
                         Set at minimum:
                         <ul>
                             <li><code>DATABASE_URL</code> - connection string for Postgres, or SQLite</li>
@@ -84,24 +84,24 @@ python -m pip install -r requirements.txt</code></pre>
                         </ul>
                     </li>
                     <li>Apply database migrations:
-                        <pre class="bg-light p-2 rounded"><code>alembic upgrade head</code></pre>
+                        <pre class="wiki-code p-2 rounded"><code>alembic upgrade head</code></pre>
                     </li>
                     <li>Start the development server:
-                        <pre class="bg-light p-2 rounded"><code>python -m uvicorn app.main:app --host 0.0.0.0 --port 8000</code></pre>
+                        <pre class="wiki-code p-2 rounded"><code>python -m uvicorn app.main:app --host 0.0.0.0 --port 8000</code></pre>
                     </li>
                 </ol>
 
                 <h6>Production Deployment with Docker</h6>
                 <ol>
                     <li>On your server, clone or pull the latest code:
-                        <pre class="bg-light p-2 rounded"><code>git pull origin main</code></pre>
+                        <pre class="wiki-code p-2 rounded"><code>git pull origin main</code></pre>
                     </li>
                     <li>Build and start the containers:
-                        <pre class="bg-light p-2 rounded"><code>docker compose up --build -d</code></pre>
+                        <pre class="wiki-code p-2 rounded"><code>docker compose up --build -d</code></pre>
                     </li>
                     <li>The application container automatically runs Alembic migrations on startup.</li>
                     <li>After code updates, always run:
-                        <pre class="bg-light p-2 rounded"><code>git pull origin main
+                        <pre class="wiki-code p-2 rounded"><code>git pull origin main
 docker compose up --build -d</code></pre>
                         Restarting an old container is not enough because it may still contain stale code.
                     </li>
@@ -109,7 +109,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="setup">
+        <div class="card mb-4 wiki-card" id="setup">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>First-Time Setup</h5>
             </div>
@@ -128,7 +128,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="auth">
+        <div class="card mb-4 wiki-card" id="auth">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Accounts & Login</h5>
             </div>
@@ -147,7 +147,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="plans">
+        <div class="card mb-4 wiki-card" id="plans">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-kanban me-2"></i>Migration Plans</h5>
             </div>
@@ -172,7 +172,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="members">
+        <div class="card mb-4 wiki-card" id="members">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-people me-2"></i>Members & Invites</h5>
             </div>
@@ -202,7 +202,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="processes">
+        <div class="card mb-4 wiki-card" id="processes">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-folder me-2"></i>Processes</h5>
             </div>
@@ -227,7 +227,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="subscriptions">
+        <div class="card mb-4 wiki-card" id="subscriptions">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Email Subscriptions</h5>
             </div>
@@ -247,7 +247,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="tasks">
+        <div class="card mb-4 wiki-card" id="tasks">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-check2-square me-2"></i>Tasks</h5>
             </div>
@@ -293,7 +293,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="steps">
+        <div class="card mb-4 wiki-card" id="steps">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Task Steps</h5>
             </div>
@@ -319,7 +319,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="notes">
+        <div class="card mb-4 wiki-card" id="notes">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Notes & Attachments</h5>
             </div>
@@ -332,7 +332,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="email">
+        <div class="card mb-4 wiki-card" id="email">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-envelope-at me-2"></i>Email & Notifications</h5>
             </div>
@@ -360,7 +360,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="admin">
+        <div class="card mb-4 wiki-card" id="admin">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Admin Area</h5>
             </div>
@@ -381,7 +381,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="security">
+        <div class="card mb-4 wiki-card" id="security">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Roles & Permissions</h5>
             </div>
@@ -395,7 +395,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="troubleshooting">
+        <div class="card mb-4 wiki-card" id="troubleshooting">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Troubleshooting</h5>
             </div>
@@ -418,7 +418,7 @@ docker compose up --build -d</code></pre>
             </div>
         </div>
 
-        <div class="card mb-4" id="faq">
+        <div class="card mb-4 wiki-card" id="faq">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-question-circle me-2"></i>FAQ</h5>
             </div>
