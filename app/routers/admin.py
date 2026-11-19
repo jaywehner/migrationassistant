@@ -15,7 +15,7 @@ from app.models.audit import AuditLog
 from app.models.plan import PlanRole, MigrationPlan
 from app.models.system_log import LogLevel
 from app.services.plan_service import get_user_role_in_plan, get_plan_by_id
-from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password, validate_email_address
+from app.services.auth_service import create_user as create_new_user, get_user_by_id, get_user_by_email, hash_password, validate_email_address, reset_failed_logins
 from app.services.email_service import send_new_account_email
 from app.services.email_service import build_email_layout
 from app.services import system_log_service
@@ -235,6 +235,32 @@ async def admin_reset_password(
 
     await system_log_service.log_system_event(
         db, action="admin_password_reset", category="admin",
+        level=system_log_service.LogLevel.normal.value,
+        actor=user, details={"target_user_id": str(target_user_id)},
+        request=request,
+    )
+    await db.commit()
+
+    return RedirectResponse(url="/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{target_user_id}/unlock")
+async def admin_unlock_user(
+    request: Request,
+    target_user_id: uuid.UUID,
+    user: User = Depends(require_global_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    await csrf_protect(request)
+    target = await get_user_by_id(db, target_user_id)
+    if not target:
+        raise HTTPException(status_code=404)
+
+    await reset_failed_logins(db, target)
+    await db.commit()
+
+    await system_log_service.log_system_event(
+        db, action="admin_user_unlocked", category="admin",
         level=system_log_service.LogLevel.normal.value,
         actor=user, details={"target_user_id": str(target_user_id)},
         request=request,

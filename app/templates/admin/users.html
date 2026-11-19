@@ -52,6 +52,14 @@
                     <td><small class="text-muted">{{ u.created_at.strftime('%b %d, %Y') }}</small></td>
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
+                            {% if u.is_locked %}
+                            <form method="post" action="/admin/users/{{ u.id }}/unlock" class="d-inline" onsubmit="return confirm('Unlock this user account?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-gold" title="Unlock account">
+                                    <i class="bi bi-unlock"></i> Unlock
+                                </button>
+                            </form>
+                            {% endif %}
                             {% if not u.is_first_admin or current_user.id == u.id %}
                             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editUserModal-{{ u.id }}">Edit</button>
                             {% endif %}
